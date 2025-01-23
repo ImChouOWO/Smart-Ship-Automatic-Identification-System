@@ -8,7 +8,7 @@
 **船舶AIS監控系統**是一個實時應用，用於監控和分析船舶數據，包括GPS位置、IMU數據、5G信號強度和即時攝影畫面。該應用還集成了動態地圖功能，以可視化顯示船舶的當前位置。
 
 ---
-
+相關依賴(Nessary dependencies)
 ## 功能 (Features)
 1. **實時攝影機畫面 (Real-time Camera Feed)**
    - 顯示船舶的即時攝影畫面。
@@ -51,9 +51,6 @@
    - 一個JavaScript庫，用於渲染交互式地圖。
 
 ---
-
-
-## 運行應用 (Run the Application)
 
 
 
