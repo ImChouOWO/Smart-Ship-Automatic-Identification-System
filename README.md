@@ -8,7 +8,22 @@
 **船舶AIS監控系統**是一個實時應用，用於監控和分析船舶數據，包括GPS位置、IMU數據、5G信號強度和即時攝影畫面。該應用還集成了動態地圖功能，以可視化顯示船舶的當前位置。
 
 ---
-相關依賴(Nessary dependencies)
+##相關依賴(Nessary dependencies)
+
+1.Node.js
+2.npm
+
+React module
+
+[UI model mui](https://mui.com/material-ui/)
+[Map model leaflet](https://react-leaflet.js.org/)
+```bash
+npm install @mui/material @emotion/react @emotion/styled
+```
+```bash
+npm  install react@rc react-dom@rc leaflet
+```
+---
 ## 功能 (Features)
 1. **實時攝影機畫面 (Real-time Camera Feed)**
    - 顯示船舶的即時攝影畫面。
