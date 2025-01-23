@@ -67,8 +67,9 @@ npm  install react@rc react-dom@rc leaflet
 
 ---
 
-### 展示 Demo
+### 展示（Demo）
 
+![demo](https://github.com/ImChouOWO/Smart-Ship-Automatic-Identification-System/blob/main/img/AIS.png)
 
 
 
