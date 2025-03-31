@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Compass, Navigation, Webcam, Signal, AlertTriangle } from 'lucide-react';
+import { Compass, Navigation, Webcam, Signal, AlertTriangle, BatteryCharging, Move } from 'lucide-react';
 import { Card, CardContent, CardHeader, Box, Typography, LinearProgress } from '@mui/material';
 
-// 解決 Leaflet marker 圖標問題
+// Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -17,7 +17,6 @@ const App = () => {
   const [shipData, setShipData] = useState({
     heading: 45,
     speed: 12.5,
-    // 22.609277252039476, 120.27353590281415
     position: {
       latitude: 22.609277252039476,
       longitude: 120.27353590281415,
@@ -28,28 +27,29 @@ const App = () => {
       yaw: 45.2,
     },
     signalStrength: 85,
+    batteryLevel: 78,
+    rudderAngle: 10,
   });
 
   return (
-    <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: '#ede6e6', p: 3 }}>
+    <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: '#1E3A5F', p: 3 }}>
       <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
         <Box mb={3}>
-          <Typography variant="h3" component="h1" color="text.primary" gutterBottom>
+          <Typography variant="h3" component="h1" color="#FFFFFF" gutterBottom>
             Ship AIS Monitoring System
           </Typography>
-          <Typography color="text.secondary">Real-time Monitoring and Data Analysis</Typography>
+          <Typography color="#D1D5DB">Real-time Monitoring and Data Analysis</Typography>
         </Box>
 
         <Box display="grid" gridTemplateColumns={{ xs: '1fr', lg: '1fr 1fr' }} gap={3}>
-          {/* 左側攝影機畫面 */}
           <Box display="flex" flexDirection="column" gap={3}>
-            <Card>
-              <CardHeader title="Real-time Camera Feed" avatar={<Webcam />} />
+            <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF' }}>
+              <CardHeader title="Real-time Camera Feed" avatar={<Webcam color="#00AEEF" />} />
               <CardContent>
                 <Box
                   sx={{
                     aspectRatio: '16/9',
-                    bgcolor: 'grey.800',
+                    bgcolor: '#0A2239',
                     borderRadius: 2,
                     display: 'flex',
                     alignItems: 'center',
@@ -65,20 +65,26 @@ const App = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF' }}>
               <CardContent>
                 <Box display="flex" alignItems="center" gap={1}>
-                  <AlertTriangle />
-                  <Typography color="warning.main">System Operating Normally</Typography>
+                  <AlertTriangle color="#FFA500" />
+                  <Typography color="#FFA500">System Operating Normally</Typography>
                 </Box>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF' }}>
+              <CardHeader title="Rudder Angle" avatar={<Move color="#00AEEF" />} />
+              <CardContent>
+                <Typography>Rudder Angle: {shipData.rudderAngle}°</Typography>
               </CardContent>
             </Card>
           </Box>
 
-          {/* 右側感測器數據 */}
           <Box display="flex" flexDirection="column" gap={3}>
-            <Card>
-              <CardHeader title="GPS Location" avatar={<Navigation />} />
+            <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF' }}>
+              <CardHeader title="GPS Location" avatar={<Navigation color="#00AEEF" />} />
               <CardContent>
                 <Typography>Latitude: {shipData.position.latitude}°N</Typography>
                 <Typography>Longitude: {shipData.position.longitude}°E</Typography>
@@ -86,8 +92,8 @@ const App = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader title="IMU Data" avatar={<Compass />} />
+            <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF' }}>
+              <CardHeader title="IMU Data" avatar={<Compass color="#00AEEF" />} />
               <CardContent>
                 <Typography>Roll: {shipData.imu.roll}°</Typography>
                 <Typography>Pitch: {shipData.imu.pitch}°</Typography>
@@ -95,22 +101,33 @@ const App = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader title="5G Signal" avatar={<Signal />} />
+            <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF' }}>
+              <CardHeader title="5G Signal" avatar={<Signal color="#00AEEF" />} />
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
                   <Typography>Signal Strength: {shipData.signalStrength}%</Typography>
                   <Box sx={{ width: '50%' }}>
-                    <LinearProgress variant="determinate" value={shipData.signalStrength} />
+                    <LinearProgress variant="determinate" value={shipData.signalStrength} color="info" />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+
+            <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF' }}>
+              <CardHeader title="Battery Level" avatar={<BatteryCharging color="#00AEEF" />} />
+              <CardContent>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Typography>Battery Level: {shipData.batteryLevel}%</Typography>
+                  <Box sx={{ width: '50%' }}>
+                    <LinearProgress variant="determinate" value={shipData.batteryLevel} color="success" />
                   </Box>
                 </Box>
               </CardContent>
             </Card>
           </Box>
 
-          {/* 地圖卡片 - 跨越兩列 */}
-          <Card sx={{ gridColumn: { xs: 'span 1', lg: 'span 2' } }}>
-            <CardHeader title="Map Location" avatar={<Navigation />} />
+          <Card sx={{ gridColumn: { xs: 'span 1', lg: 'span 2' }, bgcolor: '#2C3E50', color: '#FFFFFF' }}>
+            <CardHeader title="Map Location" avatar={<Navigation color="#00AEEF" />} />
             <CardContent>
               <MapContainer
                 center={[shipData.position.latitude, shipData.position.longitude]}
@@ -119,7 +136,7 @@ const App = () => {
               >
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  attribution='&copy; OpenStreetMap contributors'
                 />
                 <Marker position={[shipData.position.latitude, shipData.position.longitude]}>
                   <Popup>
