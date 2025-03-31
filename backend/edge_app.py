@@ -37,8 +37,8 @@ def get_imu_data():
             time.sleep(0.2)
             print(type(result[2]))
             return ['%.2f' % result[0], '%.2f' % result[1], '%.2f' % (result[2]-167)]
-        
-        return "No imu info"
+        else:
+            return "No imu info"
 
 if __name__ =="__main__":
     while True:
