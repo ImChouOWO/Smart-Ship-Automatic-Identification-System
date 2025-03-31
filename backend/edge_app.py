@@ -1,14 +1,13 @@
 # device_a_client.py
 import socketio
 import time
-import random
-import time
-from imu import DueData
+import threading
 import serial
+from imu import DueData
+import lidar  # 導入你寫的 lidar.py 模組
 
-# 固定 IP server 的 IP，請替換成你的裝置 B IP
-SERVER_URL = 'http://140.133.74.176:5000'  # 或公開 IP
-
+# ✅ Socket.IO Server
+SERVER_URL = 'http://140.133.74.176:5000'
 sio = socketio.Client()
 
 @sio.event
@@ -20,30 +19,55 @@ def disconnect():
     print("❌ Disconnected from server")
 
 
-sio.connect(SERVER_URL)
+# ✅ LiDAR 執行緒：每圈掃描完就傳送資料
+def lidar_callback(scan_results):
+    send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]  # 只取前100筆避免太大
+    sio.emit("get_lidar", send_data)
+    print(f"📤 Sent {len(send_data)} lidar points")
+
+def lidar_thread_func():
+    try:
+        lidar.start_lidar_scan(callback=lidar_callback)
+    except Exception as e:
+        print(f"❌ LiDAR thread error: {e}")
 
 
-def get_imu_data():
-    port = '/dev/ttyUSB4' # USB serial port linux
-    baud = 9600   # Same baud rate as the INERTIAL navigation module
-    ser = serial.Serial(port, baud, timeout=0.5)
-    print("Serial is Opened:", ser.is_open)
-    while(1):
-        RXdata = ser.read(1)#一个一个读
-        RXdata = int(RXdata.hex(),16) #转成16进制显示
-        result = DueData(RXdata)
-        if result != None:
-            # print(result)
-            time.sleep(0.2)
-            print(type(result[2]))
-            return ['%.2f' % result[0], '%.2f' % result[1], '%.2f' % (result[2]-167)]
+# ✅ IMU 執行緒：每隔幾秒讀一次發送
+def imu_thread_func():
+    port = '/dev/ttyUSB4'
+    baud = 9600
+    try:
+        ser = serial.Serial(port, baud, timeout=0.5)
+        print("✅ IMU Serial is Opened:", ser.is_open)
+        while True:
+            RXdata = ser.read(1)
+            RXdata = int(RXdata.hex(), 16)
+            result = DueData(RXdata)
+            if result is not None:
+                imu_data = ['%.2f' % result[0], '%.2f' % result[1], '%.2f' % (result[2]-167)]
+                sio.emit("get_imu", imu_data)
+                print(f"📤 Sent IMU data: {imu_data}")
+                time.sleep(5)
+    except Exception as e:
+        print(f"❌ IMU thread error: {e}")
 
-if __name__ =="__main__":
-    while True:
-        try:
-            data= get_imu_data()
-            sio.emit("get_imu",data)
-            print(f"send:{data}")
-            time.sleep(5)
-        except KeyboardInterrupt:
-            sio.disconnect()
+
+# ✅ 主程式
+if __name__ == "__main__":
+    try:
+        sio.connect(SERVER_URL)
+
+        # 啟動 IMU 與 LiDAR 各自的執行緒
+        imu_thread = threading.Thread(target=imu_thread_func, daemon=True)
+        lidar_thread = threading.Thread(target=lidar_thread_func, daemon=True)
+
+        imu_thread.start()
+        lidar_thread.start()
+
+        # 主程式等待（可以改成 while True: sleep 也可以）
+        imu_thread.join()
+        lidar_thread.join()
+
+    except KeyboardInterrupt:
+        print("🛑 KeyboardInterrupt. Closing connection...")
+        sio.disconnect()
