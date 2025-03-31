@@ -4,7 +4,7 @@ from flask import Flask, render_template
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
-
+socketio = SocketIO(app, cors_allowed_origins='*')  # 允許跨來源連接
 
 
 @socketio.on('get_imu')
