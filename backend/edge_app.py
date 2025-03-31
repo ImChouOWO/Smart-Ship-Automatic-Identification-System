@@ -24,7 +24,7 @@ sio.connect(SERVER_URL)
 
 
 def get_imu_data():
-    port = '/dev/ttyUSB0' # USB serial port linux
+    port = '/dev/ttyUSB4' # USB serial port linux
     baud = 9600   # Same baud rate as the INERTIAL navigation module
     ser = serial.Serial(port, baud, timeout=0.5)
     print("Serial is Opened:", ser.is_open)
