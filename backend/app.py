@@ -32,7 +32,7 @@ def index():
 device_status = {}
 @app.route('/status')
 def status():
-    html = "<h2>📡 Edge Devices 狀態</h2><ul>"
+    html = "<h2>📡 Edge Devices's 狀態</h2><ul>"
     for device, info in device_status.items():
         html += f"<li><strong>{device}</strong><ul>"
         if 'imu' in info:
@@ -43,6 +43,7 @@ def status():
             html += f"<li>RTSP: <a href='{info['video_url']}'>{info['video_url']}</a></li>"
         html += "</ul></li>"
     html += "</ul>"
+    
     return html
 
 if __name__ == '__main__':
