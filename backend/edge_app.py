@@ -70,7 +70,7 @@ if __name__ == "__main__":
         lidar_thread = threading.Thread(target=lidar_thread_func, daemon=True)
 
         imu_thread.start()
-        lidar_thread.start()
+        # lidar_thread.start()
 
         # 主程式保持運作直到手動中斷
         while True:
