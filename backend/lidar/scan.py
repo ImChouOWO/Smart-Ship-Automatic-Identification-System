@@ -15,8 +15,9 @@ TIMEOUT = 1
 START_SCAN = b'\xA5\x20'
 STOP_SCAN = b'\xA5\x25'
 
-# ✅ 最大顯示距離（單位：mm），可依需求調整
-MAX_DISTANCE = 1000  # 例如設為 20 公尺 = 20000 mm
+# ✅ 參數：最大顯示距離（mm）與最大保留圈數
+MAX_DISTANCE = 1000     # 20 公尺
+MAX_HISTORY = 100         # 最多保留 10 圈
 
 def initialize_uart():
     try:
@@ -46,20 +47,19 @@ def parse_scan_data(data):
             angle_q2, distance_q2, quality = struct.unpack('<HHB', data[i + 2:i + 7])
             angle = (angle_q2 / 64.0) * (np.pi / 180.0)
             distance = distance_q2 / 4.0
-            if distance <= MAX_DISTANCE:  # ✅ 僅保留指定距離內的點
+            if distance <= MAX_DISTANCE:
                 results.append((angle, distance))
     return results
 
-# 初始化圖表（黑色背景 + 紅點）
+# 畫圖初始化
 fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
 sc = ax.scatter([], [], c='red', s=3, alpha=0.8)
 ax.set_theta_zero_location('N')
 ax.set_theta_direction(-1)
-ax.set_ylim(0, MAX_DISTANCE)  # ✅ 動態設定最大距離
+ax.set_ylim(0, MAX_DISTANCE)
 
 # 多圈歷史資料儲存
 scan_history = []
-history_limit = 10
 last_angle = None
 
 def update(frame):
@@ -75,7 +75,7 @@ def update(frame):
 
         if last_angle is not None and np.any(angles < last_angle - np.pi):
             scan_history.append(results)
-            if len(scan_history) > history_limit:
+            if len(scan_history) > MAX_HISTORY:
                 scan_history.pop(0)
 
         last_angle = np.max(angles)
