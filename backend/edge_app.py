@@ -19,6 +19,8 @@ def disconnect():
 
 # ✅ LiDAR 執行緒：每圈掃描完就傳送資料
 def lidar_callback(scan_results):
+    lidar.PORT = '/dev/ttyUSB5'
+    lidar.BAUDRATE = 1000000
     send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]  # 限制最多100筆
     sio.emit("get_lidar", send_data)
     print(f"📤 Sent {len(send_data)} lidar points")
@@ -31,7 +33,7 @@ def lidar_thread_func():
 
 # ✅ IMU 執行緒：每隔幾秒讀一次發送
 def imu_thread_func():
-    port = '/dev/ttyUSB4'
+    port = '/dev/ttyUSB0'
     baud = 9600
     try:
         ser = serial.Serial(port, baud, timeout=0.5)
