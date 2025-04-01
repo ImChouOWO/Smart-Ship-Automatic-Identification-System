@@ -16,7 +16,7 @@ START_SCAN = b'\xA5\x20'
 STOP_SCAN = b'\xA5\x25'
 
 # ✅ 最大顯示距離（單位：mm），可依需求調整
-MAX_DISTANCE = 2000  # 例如設為 20 公尺 = 20000 mm
+MAX_DISTANCE = 1000  # 例如設為 20 公尺 = 20000 mm
 
 def initialize_uart():
     try:
