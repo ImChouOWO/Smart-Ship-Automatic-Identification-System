@@ -1,7 +1,9 @@
 import subprocess
-from flask import Flask, render_template
-from flask_socketio import SocketIO
+import socket
+import time
 import os
+from flask import Flask
+from flask_socketio import SocketIO
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -48,24 +50,46 @@ def status():
         if 'lidar' in info:
             html += f"<li>LiDAR: {info['lidar']}</li>"
         if 'video_url' in info:
-            html += f"<li>RTSP: <a href='{info['video_url']}'>{info['video_url']}</a></li>"
+            html += f"<li>RTSP: <a href='{info['video_url']}' target='_blank'>{info['video_url']}</a></li>"
         html += "</ul></li>"
     html += "</ul>"
     return html
 
-# ✅ 在 Flask 啟動前先啟動 mediamtx
-def start_rtsp_server():
-    try:
-        # 檢查是否已經有 mediamtx 執行中
-        result = subprocess.run(["pgrep", "-f", "mediamtx"], capture_output=True, text=True)
-        if result.stdout.strip() != "":
-            print("⚠️ mediamtx 已在執行，略過啟動")
-            return
+# ✅ 檢查某個 port 是否有被打開（代表 mediamtx 有啟動成功）
+def is_port_open(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('127.0.0.1', port)) == 0
 
-        subprocess.Popen(["./mediamtx/mediamtx"])
-        print("🎥 RTSP Server 啟動成功 ✅")
-    except Exception as e:
-        print(f"❌ 無法啟動 RTSP Server: {e}")
+# ✅ 啟動 RTSP Server（mediamtx）
+def start_rtsp_server():
+    config_path = "./mediamtx/mediamtx.yml"
+    executable = "./mediamtx/mediamtx"
+
+    if not os.path.exists(config_path):
+        print(f"❌ 找不到設定檔 {config_path}")
+        return
+
+    if not os.path.exists(executable):
+        print(f"❌ 找不到 mediamtx 執行檔 {executable}")
+        return
+
+    result = subprocess.run(["pgrep", "-f", "mediamtx"], capture_output=True, text=True)
+    if result.stdout.strip() != "":
+        print("⚠️ mediamtx 已在執行，略過啟動")
+        return
+
+    print("🚀 啟動 mediamtx ...")
+    subprocess.Popen([executable, config_path])
+
+    # 等待 RTSP port 開啟（最多等 10 秒）
+    for i in range(10):
+        if is_port_open(8554):
+            print("✅ RTSP Server 啟動成功 (port 8554)")
+            return
+        time.sleep(1)
+
+    print("❌ RTSP Server 未能在 10 秒內啟動（port 8554 未開）")
+
 if __name__ == '__main__':
     start_rtsp_server()
     socketio.run(app, debug=True, host='0.0.0.0', port=5000)
