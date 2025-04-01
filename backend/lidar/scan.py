@@ -3,7 +3,9 @@ import struct
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-import time
+
+# 黑底風格
+plt.style.use('dark_background')
 
 # UART 設定
 PORT = '/dev/ttyUSB5'
@@ -12,6 +14,9 @@ TIMEOUT = 1
 
 START_SCAN = b'\xA5\x20'
 STOP_SCAN = b'\xA5\x25'
+
+# ✅ 最大顯示距離（單位：mm），可依需求調整
+MAX_DISTANCE = 2000  # 例如設為 20 公尺 = 20000 mm
 
 def initialize_uart():
     try:
@@ -41,21 +46,20 @@ def parse_scan_data(data):
             angle_q2, distance_q2, quality = struct.unpack('<HHB', data[i + 2:i + 7])
             angle = (angle_q2 / 64.0) * (np.pi / 180.0)
             distance = distance_q2 / 4.0
-            # 可取消品質過濾條件以顯示更多點
-            results.append((angle, distance, quality))
+            if distance <= MAX_DISTANCE:  # ✅ 僅保留指定距離內的點
+                results.append((angle, distance))
     return results
 
-# 畫圖初始化
+# 初始化圖表（黑色背景 + 紅點）
 fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-sc = ax.scatter([], [], c=[], cmap='viridis', s=10, edgecolors='k', alpha=0.75)
-cbar = plt.colorbar(sc, ax=ax, orientation='vertical', label='Quality')  # 確保有 colorbar
+sc = ax.scatter([], [], c='red', s=3, alpha=0.8)
 ax.set_theta_zero_location('N')
 ax.set_theta_direction(-1)
-ax.set_ylim(0, 30000)  # S2E 最大距離 30 公尺
+ax.set_ylim(0, MAX_DISTANCE)  # ✅ 動態設定最大距離
 
-# 資料儲存
-scan_history = []     # 儲存每一圈掃描的資料
-history_limit = 10    # 最多保留 10 圈
+# 多圈歷史資料儲存
+scan_history = []
+history_limit = 10
 last_angle = None
 
 def update(frame):
@@ -65,38 +69,32 @@ def update(frame):
     results = parse_scan_data(data)
 
     if results:
-        angles, distances, qualities = zip(*results)
+        angles, distances = zip(*results)
         angles = np.array(angles)
         distances = np.array(distances)
 
-        # 檢測是否進入新的一圈
         if last_angle is not None and np.any(angles < last_angle - np.pi):
-            # 新一圈開始：新增並裁剪歷史資料
             scan_history.append(results)
             if len(scan_history) > history_limit:
-                scan_history.pop(0)  # 移除最舊那圈
+                scan_history.pop(0)
 
         last_angle = np.max(angles)
 
-        # 若沒進入新圈，直接補在最後一圈中
         if not scan_history or (scan_history and scan_history[-1] is not results):
             if scan_history:
                 scan_history[-1].extend(results)
             else:
                 scan_history.append(results)
 
-        # 合併所有掃描圈以便繪圖
-        merged = [pt for scan in scan_history for pt in scan]
+        merged = [pt for circle in scan_history for pt in circle]
         if merged:
-            angles, distances, qualities = zip(*merged)
+            angles, distances = zip(*merged)
             x = np.array(distances) * np.cos(angles)
             y = np.array(distances) * np.sin(angles)
             sc.set_offsets(np.c_[x, y])
-            sc.set_array(np.array(qualities))  # 更新 colorbar 映射
 
     return sc,
 
-# 主程式
 def main():
     global ser
     ser = initialize_uart()
