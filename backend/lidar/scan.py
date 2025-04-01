@@ -15,15 +15,14 @@ TIMEOUT = 1
 START_SCAN = b'\xA5\x20'
 STOP_SCAN = b'\xA5\x25'
 
-# ✅ 參數：最大顯示距離（mm）與最大保留圈數
-MAX_DISTANCE = 1000     # 20 公尺
-MAX_HISTORY = 100         # 最多保留 10 圈
+# 顯示範圍參數
+MAX_DISTANCE = 4000      # 最遠距離（mm）
+MAX_HISTORY = 60         # 最多保留幾圈
 
 def initialize_uart():
     try:
         ser = serial.Serial(PORT, BAUDRATE, timeout=TIMEOUT)
-        if ser.is_open:
-            print(f"✅ Serial port {PORT} opened successfully.")
+        print(f"✅ Serial port {PORT} opened successfully.")
         return ser
     except Exception as e:
         print(f"❌ Failed to open serial port: {e}")
@@ -45,53 +44,40 @@ def parse_scan_data(data):
     for i in range(0, len(data) - 6, 7):
         if data[i] & 0x01 == 0x01 and data[i + 1] & 0x01 == 0x01:
             angle_q2, distance_q2, quality = struct.unpack('<HHB', data[i + 2:i + 7])
-            angle = (angle_q2 / 64.0) * (np.pi / 180.0)
-            distance = distance_q2 / 4.0
+            angle_deg = angle_q2 / 64.0
+            angle_rad = np.radians(angle_deg)
+            distance = distance_q2 / 4.0  # 距離單位為 mm
             if distance <= MAX_DISTANCE:
-                results.append((angle, distance))
+                results.append((angle_rad, distance))
     return results
 
-# 畫圖初始化
-fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-sc = ax.scatter([], [], c='red', s=3, alpha=0.8)
-ax.set_theta_zero_location('N')
-ax.set_theta_direction(-1)
-ax.set_ylim(0, MAX_DISTANCE)
+# 畫圖初始化：笛卡兒坐標
+fig, ax = plt.subplots()
+sc = ax.scatter([], [], c='cyan', s=2, alpha=0.6)
+ax.set_xlim(-MAX_DISTANCE, MAX_DISTANCE)
+ax.set_ylim(-MAX_DISTANCE, MAX_DISTANCE)
+ax.set_aspect('equal')
+ax.set_title('RPLidar 2D Mapping')
+ax.set_xlabel('X [mm]')
+ax.set_ylabel('Y [mm]')
 
-# 多圈歷史資料儲存
+# 資料記錄
 scan_history = []
-last_angle = None
 
 def update(frame):
-    global last_angle, scan_history
-
     data = ser.read(1024)
     results = parse_scan_data(data)
 
     if results:
-        angles, distances = zip(*results)
-        angles = np.array(angles)
-        distances = np.array(distances)
+        scan_history.append(results)
+        if len(scan_history) > MAX_HISTORY:
+            scan_history.pop(0)
 
-        if last_angle is not None and np.any(angles < last_angle - np.pi):
-            scan_history.append(results)
-            if len(scan_history) > MAX_HISTORY:
-                scan_history.pop(0)
-
-        last_angle = np.max(angles)
-
-        if not scan_history or (scan_history and scan_history[-1] is not results):
-            if scan_history:
-                scan_history[-1].extend(results)
-            else:
-                scan_history.append(results)
-
-        merged = [pt for circle in scan_history for pt in circle]
-        if merged:
-            angles, distances = zip(*merged)
-            x = np.array(distances) * np.cos(angles)
-            y = np.array(distances) * np.sin(angles)
-            sc.set_offsets(np.c_[x, y])
+        all_points = [pt for scan in scan_history for pt in scan]
+        angles, distances = zip(*all_points)
+        x = np.array(distances) * np.cos(angles)
+        y = np.array(distances) * np.sin(angles)
+        sc.set_offsets(np.c_[x, y])
 
     return sc,
 
