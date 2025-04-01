@@ -36,9 +36,9 @@ def lidar_thread_func():
 # ✅ IMU 執行緒：每隔幾秒讀一次發送
 def imu_thread_func():
     port = '/dev/ttyUSB4'
-    baud = 9600
+    imu_baud = 9600
     try:
-        ser = serial.Serial(port, baud, timeout=0.5)
+        ser = serial.Serial(port, imu_baud, timeout=0.5)
         print("✅ IMU Serial is Opened:", ser.is_open)
         while True:
             RXdata = ser.read(1)
@@ -63,11 +63,11 @@ if __name__ == "__main__":
         lidar_thread = threading.Thread(target=lidar_thread_func, daemon=True)
 
         imu_thread.start()
-        lidar_thread.start()
+        # lidar_thread.start()
 
         # 主程式等待（可以改成 while True: sleep 也可以）
         imu_thread.join()
-        lidar_thread.join()
+        # lidar_thread.join()
 
     except KeyboardInterrupt:
         print("🛑 KeyboardInterrupt. Closing connection...")
