@@ -56,13 +56,16 @@ def status():
 # ✅ 在 Flask 啟動前先啟動 mediamtx
 def start_rtsp_server():
     try:
-        base_dir = os.path.dirname(__file__)  # 取得目前檔案所在目錄
-        mediamtx_path = os.path.join(base_dir, "mediamtx", "mediamtx")
-        subprocess.Popen([mediamtx_path])
+        # 檢查是否已經有 mediamtx 執行中
+        result = subprocess.run(["pgrep", "-f", "mediamtx"], capture_output=True, text=True)
+        if result.stdout.strip() != "":
+            print("⚠️ mediamtx 已在執行，略過啟動")
+            return
+
+        subprocess.Popen(["./mediamtx/mediamtx"])
         print("🎥 RTSP Server 啟動成功 ✅")
     except Exception as e:
         print(f"❌ 無法啟動 RTSP Server: {e}")
-
 if __name__ == '__main__':
     start_rtsp_server()
     socketio.run(app, debug=True, host='0.0.0.0', port=5000)
