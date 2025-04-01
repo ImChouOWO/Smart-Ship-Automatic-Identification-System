@@ -3,7 +3,8 @@ import time
 import threading
 import serial
 from imu import DueData
-import lidar  # 你自己的 lidar.py 模組
+import lidar
+import rtsp_server
 
 # ✅ Socket.IO Server
 SERVER_URL = 'http://140.133.74.176:5000'
@@ -70,7 +71,7 @@ if __name__ == "__main__":
 
         imu_thread = threading.Thread(target=imu_thread_func, daemon=True)
         lidar_thread = threading.Thread(target=lidar_thread_func, daemon=True)
-
+        rtsp_thread = threading.Thread(target=rtsp_server.run_rtsp_server, daemon=True)
         imu_thread.start()
         # lidar_thread.start()
 
