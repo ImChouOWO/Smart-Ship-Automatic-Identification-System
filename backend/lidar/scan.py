@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 # UART 設定
-PORT = '/dev/ttyUSB0'
+PORT = '/dev/ttyUSB5'
 BAUDRATE = 1000000
 TIMEOUT = 1
 
@@ -91,7 +91,7 @@ def update(frame):
 
 # 主程式
 def main():
-    global ser
+    global ser                                      
     ser = initialize_uart()
     start_scan(ser)
 
