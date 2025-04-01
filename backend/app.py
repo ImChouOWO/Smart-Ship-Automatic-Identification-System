@@ -19,9 +19,31 @@ def get_gps(msg):
 def get_lidar(msg):
     print(f'Received message: {msg}')
 
+@socketio.on("get_video_info")
+def get_video_info(msg):
+    device = msg.get("device", "unknown_device")
+    stream_url = msg.get("url", "N/A")
+    print(f'🎥 Received video stream info from {device}: {stream_url}')
+
 @app.route('/')
 def index():
     return '<h1>🚀 Socket.IO 測試伺服器</h1>'
+
+device_status = {}
+@app.route('/status')
+def status():
+    html = "<h2>📡 Edge Devices 狀態</h2><ul>"
+    for device, info in device_status.items():
+        html += f"<li><strong>{device}</strong><ul>"
+        if 'imu' in info:
+            html += f"<li>IMU: {info['imu']}</li>"
+        if 'lidar' in info:
+            html += f"<li>LiDAR: {info['lidar']}</li>"
+        if 'video_url' in info:
+            html += f"<li>RTSP: <a href='{info['video_url']}'>{info['video_url']}</a></li>"
+        html += "</ul></li>"
+    html += "</ul>"
+    return html
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, host='0.0.0.0', port=5000)
