@@ -28,6 +28,7 @@ def lidar_callback(scan_results):
 def lidar_thread_func():
     try:
         lidar.start_lidar_scan(callback=lidar_callback)
+        time.sleep(5)
     except Exception as e:
         print(f"❌ LiDAR thread error: {e}")
 
