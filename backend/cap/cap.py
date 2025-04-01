@@ -1,7 +1,7 @@
 import cv2
 
 # 設定擷取卡設備編號（通常是 0 或 1，可自行調整）
-device_index = 0
+device_index = 1
 
 # 嘗試開啟擷取卡
 cap = cv2.VideoCapture(device_index)
