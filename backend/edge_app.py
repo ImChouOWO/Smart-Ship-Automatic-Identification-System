@@ -5,6 +5,7 @@ import os
 from imu import DueData
 import lidar
 from multiprocessing import Process
+import serial
 
 SERVER_URL = 'http://140.133.74.176:5000'
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
