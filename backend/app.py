@@ -55,7 +55,7 @@ def status():
     html += "</ul>"
     return html
 
-# ✅ 檢查某個 port 是否有被打開（代表 mediamtx 有啟動成功）
+# ✅ 檢查某個 port 是否打得開
 def is_port_open(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('127.0.0.1', port)) == 0
@@ -73,6 +73,7 @@ def start_rtsp_server():
         print(f"❌ 找不到 mediamtx 執行檔 {executable}")
         return
 
+    # 是否已經啟動 mediamtx？
     result = subprocess.run(["pgrep", "-f", "mediamtx"], capture_output=True, text=True)
     if result.stdout.strip() != "":
         print("⚠️ mediamtx 已在執行，略過啟動")
@@ -81,7 +82,7 @@ def start_rtsp_server():
     print("🚀 啟動 mediamtx ...")
     subprocess.Popen([executable, config_path])
 
-    # 等待 RTSP port 開啟（最多等 10 秒）
+    # 等 port 開啟，最多等 10 秒
     for i in range(10):
         if is_port_open(8554):
             print("✅ RTSP Server 啟動成功 (port 8554)")
