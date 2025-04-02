@@ -90,7 +90,7 @@ def push_video_thread():
         ]
 
         try:
-            process = subprocess.run(cmd)
+            process = subprocess.Popen(cmd)
             print("❌ FFmpeg exited. Will retry in 5 seconds...")
         except Exception as e:
             print(f"❌ Video push error: {e}")
