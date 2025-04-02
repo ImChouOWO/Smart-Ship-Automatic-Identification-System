@@ -11,30 +11,36 @@ SERVER_URL = 'http://140.133.74.176:5000'
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 VIDEO_DEVICE = '/dev/video0'
 
-sio = socketio.Client()
+def create_sio():
+    sio = socketio.Client()
 
-@sio.event
-def connect():
-    print("✅ Connected to server")
+    @sio.event
+    def connect():
+        print("✅ Connected to server")
 
-@sio.event
-def disconnect():
-    print("❌ Disconnected from server")
+    @sio.event
+    def disconnect():
+        print("❌ Disconnected from server")
 
-def lidar_callback(scan_results):
-    lidar.PORT = '/dev/ttyUSB5'
-    lidar.BAUDRATE = 1000000
+    sio.connect(SERVER_URL)
+    return sio
+
+def lidar_callback(scan_results, sio):
     send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]
     sio.emit("get_lidar", send_data)
     print(f"📤 Sent {len(send_data)} lidar points")
 
 def lidar_process_func():
+    sio = create_sio()
+    lidar.PORT = '/dev/ttyUSB5'
+    lidar.BAUDRATE = 1000000
     try:
-        lidar.start_lidar_scan(callback=lidar_callback)
+        lidar.start_lidar_scan(callback=lambda data: lidar_callback(data, sio))
     except Exception as e:
         print(f"❌ LiDAR process error: {e}")
 
 def imu_process_func():
+    sio = create_sio()
     port = '/dev/ttyUSB4'
     baud = 9600
     try:
@@ -59,8 +65,8 @@ def imu_process_func():
         print(f"❌ IMU process error: {e}")
 
 def push_video_process_func():
+    sio = create_sio()
     sio.emit("get_video_info", {"device": "edge_01", "url": RTSP_URL})
-    
     retry_count = 0
     while True:
         if not os.path.exists(VIDEO_DEVICE):
@@ -71,7 +77,7 @@ def push_video_process_func():
                 print(f"🔁 Retried {retry_count} times. Still waiting for video input...")
             continue
 
-        retry_count = 0  # reset retry counter if device found
+        retry_count = 0
         print(f"🚀 Pushing video stream to {RTSP_URL}")
 
         cmd = [
@@ -100,9 +106,6 @@ def push_video_process_func():
 
 if __name__ == "__main__":
     try:
-        sio.connect(SERVER_URL)
-
-        # Use multiprocessing to avoid blocking GIL
         imu_proc = Process(target=imu_process_func)
         lidar_proc = Process(target=lidar_process_func)
         video_proc = Process(target=push_video_process_func)
@@ -111,11 +114,9 @@ if __name__ == "__main__":
         lidar_proc.start()
         video_proc.start()
 
-        # Keep the main program alive
         imu_proc.join()
         lidar_proc.join()
         video_proc.join()
 
     except KeyboardInterrupt:
         print("🛑 KeyboardInterrupt. Closing connection...")
-        sio.disconnect()
