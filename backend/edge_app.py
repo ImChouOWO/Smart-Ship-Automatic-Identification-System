@@ -34,7 +34,7 @@ def lidar_process_func():
         print(f"❌ LiDAR process error: {e}")
 
 def imu_process_func():
-    port = '/dev/ttyUSB0'
+    port = '/dev/ttyUSB4'
     baud = 9600
     try:
         ser = serial.Serial(port, baud, timeout=0.5)
