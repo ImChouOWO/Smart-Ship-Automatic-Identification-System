@@ -1,11 +1,10 @@
 import subprocess
 import socketio
 import time
-import threading
-import serial
 import os
 from imu import DueData
 import lidar
+from multiprocessing import Process
 
 SERVER_URL = 'http://140.133.74.176:5000'
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
@@ -28,13 +27,13 @@ def lidar_callback(scan_results):
     sio.emit("get_lidar", send_data)
     print(f"📤 Sent {len(send_data)} lidar points")
 
-def lidar_thread_func():
+def lidar_process_func():
     try:
         lidar.start_lidar_scan(callback=lidar_callback)
     except Exception as e:
-        print(f"❌ LiDAR thread error: {e}")
+        print(f"❌ LiDAR process error: {e}")
 
-def imu_thread_func():
+def imu_process_func():
     port = '/dev/ttyUSB0'
     baud = 9600
     try:
@@ -56,9 +55,9 @@ def imu_thread_func():
                 print(f"📤 Sent IMU data: {imu_data}")
                 time.sleep(5)
     except Exception as e:
-        print(f"❌ IMU thread error: {e}")
+        print(f"❌ IMU process error: {e}")
 
-def push_video_thread():
+def push_video_process_func():
     sio.emit("get_video_info", {"device": "edge_01", "url": RTSP_URL})
     
     retry_count = 0
@@ -91,6 +90,7 @@ def push_video_thread():
 
         try:
             process = subprocess.Popen(cmd)
+            process.wait()
             print("❌ FFmpeg exited. Will retry in 5 seconds...")
         except Exception as e:
             print(f"❌ Video push error: {e}")
@@ -101,16 +101,20 @@ if __name__ == "__main__":
     try:
         sio.connect(SERVER_URL)
 
-        imu_thread = threading.Thread(target=imu_thread_func, daemon=True)
-        lidar_thread = threading.Thread(target=lidar_thread_func, daemon=True)
-        video_thread = threading.Thread(target=push_video_thread, daemon=True)
+        # Use multiprocessing to avoid blocking GIL
+        imu_proc = Process(target=imu_process_func)
+        lidar_proc = Process(target=lidar_process_func)
+        video_proc = Process(target=push_video_process_func)
 
-        imu_thread.start()
-        lidar_thread.start()
-        video_thread.start()
+        imu_proc.start()
+        lidar_proc.start()
+        video_proc.start()
 
-        while True:
-            time.sleep(1)
+        # Keep the main program alive
+        imu_proc.join()
+        lidar_proc.join()
+        video_proc.join()
+
     except KeyboardInterrupt:
         print("🛑 KeyboardInterrupt. Closing connection...")
         sio.disconnect()
