@@ -22,8 +22,10 @@ const App = () => {
     heading: 45,
     speed: 12.5,
     position: {
-      latitude: 22.609277252039476,
-      longitude: 120.27353590281415,
+      time:0,
+      latitude: 0,
+      longitude: 0,
+      altitude:0,
     },
     imu: {
       roll: 0,
@@ -52,6 +54,24 @@ const App = () => {
       socket.off('server_imu');
     };
   }, []);
+  useEffect(()=>{
+    socket.on('server_gps', (data) => {
+      console.log("📥 IMU data from server:", data);
+      setShipData((prev) => ({
+        ...prev,
+          position: {
+          "time":data.time,
+          latitude: parseFloat(data.latitude),
+          longitude: parseFloat(data.longitude),
+          altitude: parseFloat(data.altitude),
+        },
+      }));
+    });
+
+    return () => {
+      socket.off('server_gps');
+    };
+  },[]);
 
 
   return (
