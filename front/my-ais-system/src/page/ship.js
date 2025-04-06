@@ -1,6 +1,9 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF, OrbitControls } from '@react-three/drei';
+import { Canvas } from '@react-three/fiber'; // Canvas 來自 fiber
+import { Suspense } from 'react'; // Suspense 是 React 的
+import { Card, CardContent, Box } from '@mui/material'; // MUI 的部份
 
 function YachtModel({ imu }) {
   const { scene } = useGLTF('/model/Yacht.glb');

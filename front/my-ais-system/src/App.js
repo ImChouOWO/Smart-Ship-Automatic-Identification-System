@@ -17,7 +17,8 @@ L.Icon.Default.mergeOptions({
 
 
 const App = () => {
-  
+  const socket = io('http://localhost:5000');
+  const rstp_ip = ""
   const [shipData, setShipData] = useState({
     heading: 45,
     speed: 12.5,
@@ -73,6 +74,17 @@ const App = () => {
     };
   },[]);
 
+  const [videoFrame, setVideoFrame] = useState(null);
+  useEffect(() => {
+    socket.on('video_frame', (data) => {
+      setVideoFrame(`data:image/jpeg;base64,${data}`);
+    });
+  
+    return () => {
+      socket.off('video_frame');
+    };
+  }, []);
+  
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: '#1E3A5F', p: 3 }}>
@@ -99,11 +111,16 @@ const App = () => {
                   justifyContent: 'center',
                 }}
               >
+              {videoFrame ? (
                 <img
-                  src="/api/placeholder/800/450"
+                  src={videoFrame}
                   alt="攝影機畫面"
                   style={{ borderRadius: '8px', width: '100%', height: '100%', objectFit: 'cover' }}
                 />
+              ) : (
+                <Typography color="gray">等待攝影機畫面...</Typography>
+              )}
+
               </Box>
             </CardContent>
           </Card>
