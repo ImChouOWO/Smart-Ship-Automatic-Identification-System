@@ -86,7 +86,7 @@ def gps_process_func():
     try:
         ser = serial.Serial(prot,baud, timeout=0.5)
         print("✅ GPS Serial is Opened:", ser.is_open)
-        time.sleep(1)
+        time.sleep(10)
         while True:
             try:
                 line = ser.readline().decode('ascii', errors='replace').strip()
