@@ -66,7 +66,7 @@ ser = serial.Serial(port, baudrate=baud, timeout=5)
 while True:
     try:
         line = ser.readline().decode('ascii', errors='replace').strip()
-        time.sleep(10)
+        time.sleep(2)
         if line:
             print(f"📥 接收到的NMEA語句: {line}")
             time_str, lat, lat_dir, lon, lon_dir, alt = parse_nmea_sentence(line)
