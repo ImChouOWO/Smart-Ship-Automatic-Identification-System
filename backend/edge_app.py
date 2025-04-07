@@ -6,7 +6,7 @@ from imu import DueData
 import lidar
 from multiprocessing import Process
 import serial
-import fcntl
+
 SERVER_URL = 'http://140.133.74.176:5000'
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 VIDEO_DEVICE = '/dev/video0'
@@ -66,42 +66,6 @@ def imu_process_func():
     except Exception as e:
         print(f"❌ IMU process error: {e}")
 
-
-
-USBDEVFS_RESET = 21780
-
-def reset_usb(dev_bus_device_path):
-    try:
-        with open(dev_bus_device_path, 'w') as f:
-            fcntl.ioctl(f, USBDEVFS_RESET, 0)
-        print(f"🔌 成功重啟 USB 裝置: {dev_bus_device_path}")
-        return True
-    except Exception as e:
-        print(f"❌ USB 裝置重啟失敗: {e}")
-        return False
-
-def get_usb_bus_device_path(dev_node="/dev/ttyACM0"):
-    try:
-        output = subprocess.check_output(f"udevadm info -q path -n {dev_node}", shell=True).decode().strip()
-        usb_path = f"/sys{output}"
-        for root, dirs, files in os.walk(usb_path):
-            if "busnum" in files and "devnum" in files:
-                with open(os.path.join(root, "busnum")) as f:
-                    bus = int(f.read().strip())
-                with open(os.path.join(root, "devnum")) as f:
-                    dev = int(f.read().strip())
-                return f"/dev/bus/usb/{bus:03d}/{dev:03d}"
-    except Exception as e:
-        print(f"❌ 找不到 USB 路徑: {e}")
-    return None
-
-def reset_gps_usb(dev_node="/dev/ttyACM0"):
-    path = get_usb_bus_device_path(dev_node)
-    if path:
-        return reset_usb(path)
-    else:
-        print("⚠️ 無法取得 GPS 裝置的 bus/device 路徑")
-        return False
 def parse_nmea_sentence(sentence):
     if sentence.startswith('$GPGGA'):
         parts = sentence.split(',')
@@ -119,51 +83,38 @@ def gps_process_func():
     sio = create_sio()
     prot = GPS
     baud = 4800
-    invalid_nmea_count = 0
-    MAX_INVALID_COUNT = 10
-
     try:
-        ser = serial.Serial(prot, baud, timeout=0.5)
+        ser = serial.Serial(prot,baud, timeout=0.5)
         print("✅ GPS Serial is Opened:", ser.is_open)
         time.sleep(10)
-
         while True:
             try:
                 line = ser.readline().decode('ascii', errors='replace').strip()
                 if line:
-                    print(f"📥 接收到的NMEA語句: {line}")
+                    # print(f"接收到的NMEA語句: {line}")
                     time_str, lat, lat_dir, lon, lon_dir, alt = parse_nmea_sentence(line)
                     if time_str and lat and lon:
+                        print(f"時間: {time_str}")
+                        print(f"緯度: {lat} {lat_dir}")
+                        print(f"經度: {lon} {lon_dir}")
+                        print(f"海拔: {alt} M")
                         data = {
-                            "time": time_str,
-                            "latitude": lat,
-                            "longitude": lon,
-                            "altitude": alt
+                            "time":time_str,
+                            "latitude":lat,
+                            "longitude":lon,
+                            "altitude":alt
                         }
-                        sio.emit("get_gps", data)
-                        print(f"📤 Sent GPS data: {data}")
-                        invalid_nmea_count = 0  # 重置錯誤計數器
+                        sio.emit("get_gps",data)
+                        print(f"📤 Sent IMU data: {data}")
                         time.sleep(5)
                     else:
-                        invalid_nmea_count += 1
-                        print(f"⚠️ 無效的NMEA數據（第 {invalid_nmea_count} 次）")
-                        if invalid_nmea_count >= MAX_INVALID_COUNT:
-                            print("🧯 嘗試自動重啟 GPS 裝置...")
-                            ser.close()
-                            if reset_gps_usb(prot):
-                                time.sleep(3)
-                                ser = serial.Serial(prot, baud, timeout=0.5)
-                                print("🔁 GPS 裝置重新連線完成")
-                            else:
-                                print("🚫 GPS 裝置重啟失敗，跳過重啟")
-                            invalid_nmea_count = 0
+                        print("NMEA data not avaliable...")
                         time.sleep(5)
-            except Exception as e:
-                print(f"❌ 讀取錯誤: {e}")
-                time.sleep(5)
+            except ValueError:
+                print("無效的NMEA數據，繼續等待...")
+                continue             
     except Exception as e:
-        print(f'❌ GPS 初始化錯誤: {e}')
-
+        print(f'erro:{e}')
 
 
 
