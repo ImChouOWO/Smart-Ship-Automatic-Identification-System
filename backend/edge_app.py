@@ -10,7 +10,9 @@ import serial
 SERVER_URL = 'http://140.133.74.176:5000'
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 VIDEO_DEVICE = '/dev/video0'
-
+IMU ='/dev/ttyUSB4'
+LIDAR ='/dev/ttyUSB5'
+GPS ="ttyACM0"
 def create_sio():
     sio = socketio.Client()
 
@@ -32,7 +34,7 @@ def lidar_callback(scan_results, sio):
 
 def lidar_process_func():
     sio = create_sio()
-    lidar.PORT = '/dev/ttyUSB5'
+    lidar.PORT = LIDAR
     lidar.BAUDRATE = 1000000
     try:
         lidar.start_lidar_scan(callback=lambda data: lidar_callback(data, sio))
@@ -41,7 +43,7 @@ def lidar_process_func():
 
 def imu_process_func():
     sio = create_sio()
-    port = '/dev/ttyUSB4'
+    port = IMU
     baud = 9600
     try:
         ser = serial.Serial(port, baud, timeout=0.5)
