@@ -109,6 +109,7 @@ def gps_process_func():
                         time.sleep(5)
                     else:
                         print("NMEA data not avaliable...")
+                        time.sleep(5)
             except ValueError:
                 print("無效的NMEA數據，繼續等待...")
                 continue             
