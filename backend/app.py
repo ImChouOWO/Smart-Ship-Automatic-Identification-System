@@ -11,33 +11,45 @@ import threading
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins='*')  # 允許跨來源連接
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')  # 允許跨來源連接
 device_status = {}
 
 def stream_rtsp_frames():
-    cap = cv2.VideoCapture(RTSP_URL)
-    fps =30
-    if not cap.isOpened():
-        print("❌ 無法開啟 RTSP 來源")
-        return
+    cmd = [
+        'ffmpeg',
+        '-i', RTSP_URL,
+        '-vf', 'scale=640:360',
+        '-f', 'image2pipe',
+        '-vcodec', 'mjpeg',
+        '-'
+    ]
 
-    print("📹 開始串流 RTSP → Base64")
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+    def read_jpeg():
+        data = b''
+        while True:
+            byte = process.stdout.read(1)
+            if not byte:
+                return None
+            data += byte
+            if data.endswith(b'\xff\xd9'):  # JPEG 結尾標記
+                return data
+
+    print("📡 FFmpeg 啟動 RTSP → JPEG 串流中...")
 
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            print("⚠️ 無法讀取幀影像")
-            continue
-        
-        # 壓縮成 JPEG 並轉 base64
-        _, buffer = cv2.imencode('.jpg', frame)
-        jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+        try:
+            jpeg = read_jpeg()
+            if jpeg is None:
+                break
+            b64 = base64.b64encode(jpeg).decode('utf-8')
+            socketio.emit('video_frame', b64)
+            time.sleep(0.1)  # 控制幀率，10 fps
+        except Exception as e:
+            print(f"⚠️ FFmpeg 解碼錯誤: {e}")
+            break
 
-        # 送到前端
-        socketio.emit('video_frame', jpg_as_text)
-
-        time.sleep(1/fps)  # 每秒約 10 fps，可依需求調整
-    cap.release()
 
 @socketio.on('get_imu')
 def get_imu(msg):
