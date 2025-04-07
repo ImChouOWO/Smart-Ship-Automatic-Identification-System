@@ -4,7 +4,7 @@ import time
 import os
 from flask import Flask
 from flask_socketio import SocketIO
-import socketio
+import socketio as sioc
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -13,7 +13,7 @@ FRONT_URL ="http://140.133.74.176:3000"
 # 儲存裝置資料
 device_status = {}
 def create_sio():
-    sio = socketio.Client()
+    sio = sioc.Client()
 
     @sio.event
     def connect():
