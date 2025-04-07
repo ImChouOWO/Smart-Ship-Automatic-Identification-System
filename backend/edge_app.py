@@ -159,14 +159,17 @@ if __name__ == "__main__":
         imu_proc = Process(target=imu_process_func)
         lidar_proc = Process(target=lidar_process_func)
         video_proc = Process(target=push_video_process_func)
+        gps_proc =Process(target=gps_process_func)
 
         imu_proc.start()
         lidar_proc.start()
         video_proc.start()
+        gps_proc.start()
 
         imu_proc.join()
         lidar_proc.join()
         video_proc.join()
+        gps_proc.join()
 
     except KeyboardInterrupt:
         print("🛑 KeyboardInterrupt. Closing connection...")
