@@ -4,6 +4,7 @@ import time
 import os
 from flask import Flask
 from flask_socketio import SocketIO
+import socketio
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
