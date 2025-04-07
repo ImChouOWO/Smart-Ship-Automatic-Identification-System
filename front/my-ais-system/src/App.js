@@ -112,11 +112,12 @@ const App = () => {
                 }}
               >
               {videoFrame ? (
-                <img
-                  src={videoFrame}
-                  alt="攝影機畫面"
-                  style={{ borderRadius: '8px', width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                <iframe
+                src="http://140.133.74.176:8889/edge_cam"
+                style={{ width: '100%', height: 400, border: 'none', borderRadius: 8 }}
+                allow="autoplay; fullscreen; camera; microphone"
+                title="WebRTC Player"
+              />
               ) : (
                 <Typography color="gray">等待攝影機畫面...</Typography>
               )}

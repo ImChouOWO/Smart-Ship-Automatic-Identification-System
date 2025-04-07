@@ -14,41 +14,6 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')  # 允許跨來源連接
 device_status = {}
 
-def stream_rtsp_frames():
-    cmd = [
-        'ffmpeg',
-        '-i', RTSP_URL,
-        '-vf', 'scale=640:360',
-        '-f', 'image2pipe',
-        '-vcodec', 'mjpeg',
-        '-'
-    ]
-
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-
-    def read_jpeg():
-        data = b''
-        while True:
-            byte = process.stdout.read(1)
-            if not byte:
-                return None
-            data += byte
-            if data.endswith(b'\xff\xd9'):  # JPEG 結尾標記
-                return data
-
-    print("📡 FFmpeg 啟動 RTSP → JPEG 串流中...")
-
-    while True:
-        try:
-            jpeg = read_jpeg()
-            if jpeg is None:
-                break
-            b64 = base64.b64encode(jpeg).decode('utf-8')
-            socketio.emit('video_frame', b64)
-            time.sleep(0.1)  # 控制幀率，10 fps
-        except Exception as e:
-            print(f"⚠️ FFmpeg 解碼錯誤: {e}")
-            break
 
 
 @socketio.on('get_imu')
@@ -149,5 +114,4 @@ def start_rtsp_server():
 
 if __name__ == '__main__':
     start_rtsp_server()
-    threading.Thread(target=stream_rtsp_frames, daemon=True).start()
     socketio.run(app, debug=True, host='0.0.0.0', port=5000)
