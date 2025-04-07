@@ -91,7 +91,7 @@ def gps_process_func():
             try:
                 line = ser.readline().decode('ascii', errors='replace').strip()
                 if line:
-                    # print(f"接收到的NMEA語句: {line}")
+                    print(f"接收到的NMEA語句: {line}")
                     time_str, lat, lat_dir, lon, lon_dir, alt = parse_nmea_sentence(line)
                     if time_str and lat and lon:
                         print(f"時間: {time_str}")
