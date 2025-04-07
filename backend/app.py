@@ -4,15 +4,40 @@ import time
 import os
 from flask import Flask
 from flask_socketio import SocketIO
+import cv2
+import base64
+import threading
 
-
+RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins='*')  # 允許跨來源連接
-
-# 儲存裝置資料
 device_status = {}
 
+def stream_rtsp_frames():
+    cap = cv2.VideoCapture(RTSP_URL)
+    fps =30
+    if not cap.isOpened():
+        print("❌ 無法開啟 RTSP 來源")
+        return
+
+    print("📹 開始串流 RTSP → Base64")
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("⚠️ 無法讀取幀影像")
+            continue
+        
+        # 壓縮成 JPEG 並轉 base64
+        _, buffer = cv2.imencode('.jpg', frame)
+        jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+
+        # 送到前端
+        socketio.emit('video_frame', jpg_as_text)
+
+        time.sleep(1/fps)  # 每秒約 10 fps，可依需求調整
+    cap.release()
 
 @socketio.on('get_imu')
 def get_imu(msg):
@@ -108,6 +133,9 @@ def start_rtsp_server():
 
     print("❌ RTSP Server 未能在 10 秒內啟動（port 8554 未開）")
 
+
+
 if __name__ == '__main__':
     start_rtsp_server()
+    threading.Thread(target=stream_rtsp_frames, daemon=True).start()
     socketio.run(app, debug=True, host='0.0.0.0', port=5000)
