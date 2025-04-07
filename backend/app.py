@@ -18,18 +18,17 @@ device_status = {}
 def get_imu(msg):
     print(f'Received imu message: {msg}')
     device_status.setdefault('edge_01', {})['imu'] = msg
-    
+    msg ={
+        "roll":msg[0],
+        "pitch":msg[1],
+        "yaw":msg[2],
+    }
     socketio.emit("server_imu",msg)
 
 @socketio.on("get_gps")
 def get_gps(msg):
     print(f'Received gps message: {msg}')
     device_status.setdefault('edge_01', {})['gps'] = msg
-    msg ={
-        "roll":msg[0],
-        "pitch":msg[1],
-        "yaw":msg[2],
-    }
     socketio.emit("server_gps",msg)
 
 @socketio.on("get_lidar")
