@@ -14,7 +14,7 @@ def parse_nmea_sentence(sentence):
             return time_str, lat, lat_dir, lon, lon_dir, alt
     return None, None, None, None, None, None
 
-port = "/dev/tty.usbserial-120"
+port = "/dev/ttyACM0"
 ser = serial.Serial(port, baudrate=4800, timeout=5)
 
 while True:

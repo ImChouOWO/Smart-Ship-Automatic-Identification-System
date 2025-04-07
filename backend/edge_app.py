@@ -12,7 +12,7 @@ RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 VIDEO_DEVICE = '/dev/video0'
 IMU ='/dev/ttyUSB4'
 LIDAR ='/dev/ttyUSB5'
-GPS ="ttyACM0"
+GPS ="/dev/ttyACM0"
 def create_sio():
     sio = socketio.Client()
 
