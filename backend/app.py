@@ -27,6 +27,14 @@ def get_imu(msg):
 
 @socketio.on("get_gps")
 def get_gps(msg):
+    
+    """gps msg content
+    data = {
+            "time":time_str,
+            "latitude":lat,
+            "longitude":lon,
+            "altitude":alt}       
+    """
     print(f'Received gps message: {msg}')
     device_status.setdefault('edge_01', {})['gps'] = msg
     socketio.emit("server_gps",msg)
