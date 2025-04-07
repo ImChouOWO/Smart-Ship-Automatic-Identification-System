@@ -107,6 +107,8 @@ def gps_process_func():
                         sio.emit("get_gps",data)
                         print(f"📤 Sent IMU data: {data}")
                         time.sleep(5)
+                    else:
+                        print("NMEA data not avaliable...")
             except ValueError:
                 print("無效的NMEA數據，繼續等待...")
                 continue             
