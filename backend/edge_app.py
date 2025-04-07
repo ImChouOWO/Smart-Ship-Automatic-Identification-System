@@ -102,6 +102,18 @@ def reset_gps_usb(dev_node="/dev/ttyACM0"):
     else:
         print("⚠️ 無法取得 GPS 裝置的 bus/device 路徑")
         return False
+def parse_nmea_sentence(sentence):
+    if sentence.startswith('$GPGGA'):
+        parts = sentence.split(',')
+        if len(parts) > 6 and parts[6] == '1':
+            time_str = parts[1]
+            lat = parts[2]
+            lat_dir = parts[3]
+            lon = parts[4]
+            lon_dir = parts[5]
+            alt = parts[9]
+            return time_str, lat, lat_dir, lon, lon_dir, alt
+    return None, None, None, None, None, None
 
 def gps_process_func():
     sio = create_sio()
