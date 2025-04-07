@@ -17,7 +17,7 @@ L.Icon.Default.mergeOptions({
 
 
 const App = () => {
-  const socket = io('http://localhost:5000');
+  const socket = io('http://140.133.74.176:5000');
   const rstp_ip = ""
   const [shipData, setShipData] = useState({
     heading: 45,
@@ -57,11 +57,11 @@ const App = () => {
   }, []);
   useEffect(()=>{
     socket.on('server_gps', (data) => {
-      console.log("📥 IMU data from server:", data);
+      console.log("📥 GPS data from server:", data);
       setShipData((prev) => ({
         ...prev,
           position: {
-          "time":data.time,
+          time:data.time,
           latitude: parseFloat(data.latitude),
           longitude: parseFloat(data.longitude),
           altitude: parseFloat(data.altitude),
