@@ -8,23 +8,40 @@ from flask_socketio import SocketIO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins='*')  # 允許跨來源連接
-
+FRONT_URL ="http://140.133.74.176:3000"
 # 儲存裝置資料
 device_status = {}
+def create_sio():
+    sio = socketio.Client()
+
+    @sio.event
+    def connect():
+        print("✅ Connected to server")
+
+    @sio.event
+    def disconnect():
+        print("❌ Disconnected from server")
+
+    sio.connect(FRONT_URL)
+    return sio
 
 @socketio.on('get_imu')
 def get_imu(msg):
-    print(f'Received message: {msg}')
+    print(f'Received imu message: {msg}')
     device_status.setdefault('edge_01', {})['imu'] = msg
+    sio = create_sio()
+    sio.emit("server_imu",msg)
 
 @socketio.on("get_gps")
 def get_gps(msg):
-    print(f'Received message: {msg}')
+    print(f'Received gps message: {msg}')
     device_status.setdefault('edge_01', {})['gps'] = msg
+    sio = create_sio()
+    sio.emit("server_gps",msg)
 
 @socketio.on("get_lidar")
 def get_lidar(msg):
-    print(f'Received message: {msg}')
+    print(f'Received lidar message: {msg}')
     device_status.setdefault('edge_01', {})['lidar'] = f"{len(msg)} points"
 
 @socketio.on("get_video_info")
