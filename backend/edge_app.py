@@ -66,7 +66,7 @@ def imu_process_func():
                 imu_data = ['%.2f' % result[0], '%.2f' % result[1], '%.2f' % (result[2]-167)]
                 sio.emit("get_imu", imu_data)
                 print(f"📤 Sent IMU data: {imu_data}")
-                time.sleep(5)
+                # time.sleep(5)
     except Exception as e:
         print(f"❌ IMU process error: {e}")
 
