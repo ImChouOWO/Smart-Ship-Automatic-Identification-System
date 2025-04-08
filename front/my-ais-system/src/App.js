@@ -1,11 +1,15 @@
-import React, { useState,useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import {L, useMap } from 'leaflet';
-import { Compass, Navigation, Webcam, Signal, AlertTriangle, BatteryCharging, Move } from 'lucide-react';
-import { Card, CardContent, CardHeader, Box, Typography, LinearProgress } from '@mui/material';
+import L from 'leaflet';
+import {
+  Compass, Navigation, Webcam, Signal, AlertTriangle, BatteryCharging, Move
+} from 'lucide-react';
+import {
+  Card, CardContent, CardHeader, Box, Typography, LinearProgress
+} from '@mui/material';
 import Ship from './page/ship';
-import {io} from "socket.io-client"
+import { io } from "socket.io-client";
 
 // 修復 Leaflet 的 icon 問題
 delete L.Icon.Default.prototype._getIconUrl;
@@ -15,19 +19,27 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-
+// 地圖動態更新中心
+const MapUpdater = ({ position }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (position.latitude !== 0 && position.longitude !== 0) {
+      map.setView([position.latitude, position.longitude], map.getZoom());
+    }
+  }, [position, map]);
+  return null;
+};
 
 const App = () => {
   const socket = io('http://140.133.74.176:5000');
-  const rstp_ip = ""
   const [shipData, setShipData] = useState({
     heading: 45,
     speed: 12.5,
     position: {
-      time:0,
+      time: 0,
       latitude: 0,
       longitude: 0,
-      altitude:0,
+      altitude: 0,
     },
     imu: {
       roll: 0,
@@ -51,41 +63,32 @@ const App = () => {
         },
       }));
     });
-
-    return () => {
-      socket.off('server_imu');
-    };
+    return () => socket.off('server_imu');
   }, []);
-  useEffect(()=>{
+
+  useEffect(() => {
     socket.on('server_gps', (data) => {
       console.log("📥 GPS data from server:", data);
       setShipData((prev) => ({
         ...prev,
-          position: {
-          time:data.time,
+        position: {
+          time: data.time,
           latitude: parseFloat(data.latitude),
           longitude: parseFloat(data.longitude),
           altitude: parseFloat(data.altitude),
         },
       }));
     });
-
-    return () => {
-      socket.off('server_gps');
-    };
-  },[]);
+    return () => socket.off('server_gps');
+  }, []);
 
   const [videoFrame, setVideoFrame] = useState(null);
   useEffect(() => {
     socket.on('video_frame', (data) => {
       setVideoFrame(`data:image/jpeg;base64,${data}`);
     });
-  
-    return () => {
-      socket.off('video_frame');
-    };
+    return () => socket.off('video_frame');
   }, []);
-  
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: '#1E3A5F', p: 3 }}>
@@ -97,13 +100,12 @@ const App = () => {
           <Typography color="#D1D5DB">Real-time Monitoring and Data Analysis</Typography>
         </Box>
 
-        {/* 第一區：Camera + IMU */}
+        {/* Camera + IMU */}
         <Box display="flex" gap={3} mb={3}>
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
             <CardHeader title="Real-time Camera Feed" avatar={<Webcam color="#00AEEF" />} />
             <CardContent>
-            <Box
-              sx={{
+              <Box sx={{
                 aspectRatio: '16/9',
                 bgcolor: '#0A2239',
                 borderRadius: 2,
@@ -111,22 +113,21 @@ const App = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-              }}
-            >
-              <iframe
-                src="http://140.133.74.176:8889/edge_cam"
-                style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }}
-                allow="autoplay; fullscreen; camera; microphone"
-                title="WebRTC Player"
-              />
-            </Box>
+              }}>
+                <iframe
+                  src="http://140.133.74.176:8889/edge_cam"
+                  style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }}
+                  allow="autoplay; fullscreen; camera; microphone"
+                  title="WebRTC Player"
+                />
+              </Box>
             </CardContent>
           </Card>
 
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
             <CardHeader title="IMU Data" avatar={<Compass color="#00AEEF" />} />
             <CardContent>
-              <Ship shipData={shipData.imu}/>
+              <Ship shipData={shipData.imu} />
               <Typography>Roll: {shipData.imu.roll}°</Typography>
               <Typography>Pitch: {shipData.imu.pitch}°</Typography>
               <Typography>Yaw: {shipData.imu.yaw}°</Typography>
@@ -134,7 +135,7 @@ const App = () => {
           </Card>
         </Box>
 
-        {/* 第二區：Status + GPS */}
+        {/* Status + GPS */}
         <Box display="flex" gap={3} mb={3}>
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
             <CardContent>
@@ -155,7 +156,7 @@ const App = () => {
           </Card>
         </Box>
 
-        {/* 第三區：舵角、電池、訊號 */}
+        {/* Rudder / Battery / Signal */}
         <Box display="flex" gap={3} mb={3}>
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
             <CardHeader title="Rudder Angle" avatar={<Move color="#00AEEF" />} />
@@ -189,32 +190,35 @@ const App = () => {
           </Card>
         </Box>
 
-        {/* 地圖維持原本格式 */}
-        <Card sx={{ gridColumn: { xs: 'span 1', lg: 'span 2' }, bgcolor: '#2C3E50', color: '#FFFFFF' }}>
-          <CardHeader title="Map Location" avatar={<Navigation color="#00AEEF" />} />
-          <CardContent>
-            <MapContainer
-              center={[shipData.position.latitude, shipData.position.longitude]}
-              zoom={13}
-              style={{ height: 500, borderRadius: '8px', overflow: 'hidden' }}
-            >
-              <MapUpdater lat={shipData.position.latitude} lon={shipData.position.longitude} />
-
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; OpenStreetMap contributors'
-              />
-              <Marker 
-                key={`${shipData.position.latitude}-${shipData.position.longitude}`} 
-                position={[shipData.position.latitude, shipData.position.longitude]}
-              >
-                <Popup>
-                  Ship Position: {shipData.position.latitude}°N, {shipData.position.longitude}°E
-                </Popup>
-              </Marker>
-            </MapContainer>
-          </CardContent>
-        </Card>
+        {/* 地圖區塊 */}
+        {
+          shipData.position.latitude !== 0 && shipData.position.longitude !== 0 && (
+            <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF' }}>
+              <CardHeader title="Map Location" avatar={<Navigation color="#00AEEF" />} />
+              <CardContent>
+                <MapContainer
+                  center={[shipData.position.latitude, shipData.position.longitude]}
+                  zoom={13}
+                  style={{ height: 500, borderRadius: '8px', overflow: 'hidden' }}
+                >
+                  <MapUpdater position={shipData.position} />
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; OpenStreetMap contributors'
+                  />
+                  <Marker
+                    key={`${shipData.position.latitude}-${shipData.position.longitude}`}
+                    position={[shipData.position.latitude, shipData.position.longitude]}
+                  >
+                    <Popup>
+                      Ship Position: {shipData.position.latitude}°N, {shipData.position.longitude}°E
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </CardContent>
+            </Card>
+          )
+        }
       </Box>
     </Box>
   );
