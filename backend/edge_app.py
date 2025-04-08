@@ -14,7 +14,7 @@ IMU ='/dev/imu'
 LIDAR ='/dev/ttyUSB5'
 GPS ="/dev/gps"
 def create_sio():
-    sio = socketio.Client()
+    sio = socketio.Client(reconnection=True, reconnection_attempts=5, reconnection_delay=3)
 
     @sio.event
     def connect():
@@ -24,8 +24,12 @@ def create_sio():
     def disconnect():
         print("❌ Disconnected from server")
 
-    sio.connect(SERVER_URL)
+    try:
+        sio.connect(SERVER_URL)
+    except Exception as e:
+        print(f"❌ SocketIO initial connect error: {e}")
     return sio
+
 
 def lidar_callback(scan_results, sio):
     send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]
