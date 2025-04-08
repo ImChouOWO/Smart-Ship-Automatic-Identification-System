@@ -66,18 +66,27 @@ def imu_process_func():
     except Exception as e:
         print(f"❌ IMU process error: {e}")
 
-def parse_nmea_sentence(sentence):
+def parse_nmea_gpgga(sentence):
     if sentence.startswith('$GPGGA'):
         parts = sentence.split(',')
-        if len(parts) > 6 and parts[6] == '1':
+        if len(parts) >= 10 and parts[6] != '0':  # 有定位
             time_str = parts[1]
-            lat = parts[2]
-            lat_dir = parts[3]
-            lon = parts[4]
-            lon_dir = parts[5]
+            lat_raw, lat_dir = parts[2], parts[3]
+            lon_raw, lon_dir = parts[4], parts[5]
             alt = parts[9]
-            return time_str, lat, lat_dir, lon, lon_dir, alt
-    return None, None, None, None, None, None
+
+            # 緯度轉換成度
+            lat_deg = float(lat_raw[:2]) + float(lat_raw[2:]) / 60 if lat_raw else 0
+            if lat_dir == 'S':
+                lat_deg = -lat_deg
+
+            # 經度轉換成度
+            lon_deg = float(lon_raw[:3]) + float(lon_raw[3:]) / 60 if lon_raw else 0
+            if lon_dir == 'W':
+                lon_deg = -lon_deg
+
+            return time_str, lat_deg, lon_deg, float(alt)
+    return None, None, None, None
 
 def gps_process_func():
     sio = create_sio()
@@ -92,7 +101,7 @@ def gps_process_func():
                 line = ser.readline().decode('ascii', errors='replace').strip()
                 if line:
                     print(f"接收到的NMEA語句: {line}")
-                    time_str, lat, lat_dir, lon, lon_dir, alt = parse_nmea_sentence(line)
+                    time_str, lat, lat_dir, lon, lon_dir, alt = parse_nmea_gpgga(line)
                     if time_str and lat and lon:
                         print(f"時間: {time_str}")
                         print(f"緯度: {lat} {lat_dir}")
@@ -108,10 +117,10 @@ def gps_process_func():
                         print(f"📤 Sent IMU data: {data}")
                         time.sleep(5)
                     else:
-                        print("NMEA data not avaliable...")
+                        print("GPGGA data not avaliable...")
                         time.sleep(5)
             except ValueError:
-                print("無效的NMEA數據，繼續等待...")
+                print("NMEA data not avaliable...")
                 continue             
     except Exception as e:
         print(f'erro:{e}')
@@ -132,7 +141,7 @@ def push_video_process_func():
             continue
 
         retry_count = 0
-        print(f"🚀 Pushing video stream to {RTSP_URL}")
+        print(f"✅ Pushing video stream to {RTSP_URL}")
 
         cmd = [
             "ffmpeg",
