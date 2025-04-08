@@ -10,9 +10,9 @@ import serial
 SERVER_URL = 'http://140.133.74.176:5000'
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 VIDEO_DEVICE = '/dev/video0'
-IMU ='/dev/ttyUSB4'
+IMU ='/dev/imu'
 LIDAR ='/dev/ttyUSB5'
-GPS ="/dev/ttyACM0"
+GPS ="/dev/gps"
 def create_sio():
     sio = socketio.Client()
 
