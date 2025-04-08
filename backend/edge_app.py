@@ -138,6 +138,7 @@ def gps_process_func():
                     print(f"📥 NMEA: {line}")
                     time_str, lat, lon, alt = parse_nmea_gpgga(line)
                     if time_str and lat and lon:
+                        
                         data = {
                             "time": time_str,
                             "latitude": lat,

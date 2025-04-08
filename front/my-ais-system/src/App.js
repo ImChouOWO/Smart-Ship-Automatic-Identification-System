@@ -1,7 +1,7 @@
 import React, { useState,useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import {L, useMap } from 'leaflet';
 import { Compass, Navigation, Webcam, Signal, AlertTriangle, BatteryCharging, Move } from 'lucide-react';
 import { Card, CardContent, CardHeader, Box, Typography, LinearProgress } from '@mui/material';
 import Ship from './page/ship';
@@ -198,6 +198,8 @@ const App = () => {
               zoom={13}
               style={{ height: 500, borderRadius: '8px', overflow: 'hidden' }}
             >
+              <MapUpdater lat={shipData.position.latitude} lon={shipData.position.longitude} />
+
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; OpenStreetMap contributors'
