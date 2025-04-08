@@ -53,11 +53,11 @@ def imu_process_func():
     port = IMU
     baud = 9600
     try:
-        sio = create_sio()
         ser = serial.Serial(port, baud, timeout=0.5)
         print("✅ IMU Serial is Opened:", ser.is_open)
         time.sleep(1)
         while True:
+            sio = create_sio()
             RXdata = ser.read(1)
             if not RXdata:
                 continue
