@@ -14,6 +14,12 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
+function convertNMEAToDecimal(coord, isLat = true) {
+  const degLength = isLat ? 2 : 3; // 緯度前2位是度、經度前3位是度
+  const degrees = parseFloat(coord.slice(0, degLength));
+  const minutes = parseFloat(coord.slice(degLength));
+  return degrees + minutes / 60;
+}
 
 
 const App = () => {
@@ -62,8 +68,8 @@ const App = () => {
         ...prev,
           position: {
           time:data.time,
-          latitude: parseFloat(data.latitude),
-          longitude: parseFloat(data.longitude),
+          latitude: convertNMEAToDecimal(data.latitude, true),
+          longitude: convertNMEAToDecimal(data.longitude, false),
           altitude: parseFloat(data.altitude),
         },
       }));
