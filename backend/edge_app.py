@@ -38,19 +38,22 @@ def lidar_callback(scan_results, sio):
     print(f"📤 Sent {len(send_data)} lidar points")
 
 def lidar_process_func():
-    sio = create_sio()
+    
     lidar.PORT = LIDAR
     lidar.BAUDRATE = 1000000
     try:
+        sio = create_sio()
         lidar.start_lidar_scan(callback=lambda data: lidar_callback(data, sio))
     except Exception as e:
         print(f"❌ LiDAR process error: {e}")
+        time.sleep(3)
 
 def imu_process_func():
-    sio = create_sio()
+    
     port = IMU
     baud = 9600
     try:
+        sio = create_sio()
         ser = serial.Serial(port, baud, timeout=0.5)
         print("✅ IMU Serial is Opened:", ser.is_open)
         time.sleep(1)
@@ -70,6 +73,7 @@ def imu_process_func():
                 # time.sleep(5)
     except Exception as e:
         print(f"❌ IMU process error: {e}")
+        time.sleep(3)
 
 def parse_nmea_gpgga(sentence):
     if sentence.startswith('$GPGGA'):
@@ -98,10 +102,11 @@ def parse_nmea_gpgga(sentence):
 
 
 def gps_process_func():
-    sio = create_sio()
+    
     port = GPS
     baud = 4800
     try:
+        sio = create_sio()
         ser = serial.Serial(port, baud, timeout=0.5)
         print("✅ GPS Serial is Opened:", ser.is_open)
         time.sleep(2)
@@ -130,8 +135,10 @@ def gps_process_func():
                         print("⚠️ GPGGA 無有效座標")
             except Exception as e:
                 print(f"❌ GPS 資料解析錯誤: {e}")
+                time.sleep(3)
     except Exception as e:
         print(f"❌ GPS 串口連接失敗: {e}")
+        time.sleep(3)
 
 
 
