@@ -201,7 +201,10 @@ const App = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; OpenStreetMap contributors'
               />
-              <Marker position={[shipData.position.latitude, shipData.position.longitude]}>
+              <Marker 
+                key={`${shipData.position.latitude}-${shipData.position.longitude}`} 
+                position={[shipData.position.latitude, shipData.position.longitude]}
+              >
                 <Popup>
                   Ship Position: {shipData.position.latitude}°N, {shipData.position.longitude}°E
                 </Popup>
