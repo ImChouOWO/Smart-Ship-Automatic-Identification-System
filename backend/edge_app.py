@@ -5,6 +5,7 @@ import os
 from imu import DueData
 import lidar
 from multiprocessing import Process
+import multiprocessing
 import serial
 
 SERVER_URL = 'http://140.133.74.176:5000'
@@ -177,7 +178,7 @@ def push_video_process_func():
 
 if __name__ == "__main__":
     try:
-        Process.set_start_method("fork")
+        multiprocessing.set_start_method("fork")
         imu_proc = Process(target=imu_process_func)
         lidar_proc = Process(target=lidar_process_func)
         video_proc = Process(target=push_video_process_func)
