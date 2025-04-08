@@ -11,86 +11,103 @@ import serial
 SERVER_URL = 'http://140.133.74.176:5000'
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 VIDEO_DEVICE = '/dev/video0'
-IMU ='/dev/imu'
-LIDAR ='/dev/ttyUSB5'
-GPS ="/dev/gps"
-def create_sio():
-    sio = socketio.Client(reconnection=True, reconnection_attempts=5, reconnection_delay=3)
+IMU = '/dev/imu'
+LIDAR = '/dev/ttyUSB5'
+GPS = "/dev/gps"
 
-    @sio.event
-    def connect():
-        print("✅ Connected to server")
+def create_resilient_sio(name="module"):
+    while True:
+        try:
+            print(f"🔌 [{name}] Connecting to SocketIO server...")
+            sio = socketio.Client(reconnection=True, reconnection_attempts=5, reconnection_delay=3)
 
-    @sio.event
-    def disconnect():
-        print("❌ Disconnected from server")
+            @sio.event
+            def connect():
+                print(f"✅ [{name}] SocketIO Connected")
 
-    try:
-        sio.connect(SERVER_URL)
-    except Exception as e:
-        print(f"❌ SocketIO initial connect error: {e}")
-    return sio
+            @sio.event
+            def disconnect():
+                print(f"❌ [{name}] SocketIO Disconnected")
 
+            sio.connect(SERVER_URL)
+            return sio
+        except Exception as e:
+            print(f"❌ [{name}] SocketIO connection failed: {e}")
+            time.sleep(3)
 
 def lidar_callback(scan_results, sio):
     send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]
-    sio.emit("get_lidar", send_data)
-    print(f"📤 Sent {len(send_data)} lidar points")
+    if sio.connected:
+        sio.emit("get_lidar", send_data)
+        print(f"📤 Sent {len(send_data)} lidar points")
+    else:
+        print("⚠️ LiDAR SocketIO disconnected, skipping emit.")
 
 def lidar_process_func():
-    
     lidar.PORT = LIDAR
     lidar.BAUDRATE = 1000000
-    try:
-        sio = create_sio()
-        lidar.start_lidar_scan(callback=lambda data: lidar_callback(data, sio))
-    except Exception as e:
-        print(f"❌ LiDAR process error: {e}")
-        time.sleep(3)
+    sio = create_resilient_sio("LIDAR")
+
+    while True:
+        try:
+            lidar.start_lidar_scan(callback=lambda data: lidar_callback(data, sio))
+        except Exception as e:
+            print(f"❌ LiDAR process error: {e}")
+            time.sleep(3)
 
 def imu_process_func():
-    
     port = IMU
     baud = 9600
+    sio = create_resilient_sio("IMU")
+
     try:
         ser = serial.Serial(port, baud, timeout=0.5)
-        print("✅ IMU Serial is Opened:", ser.is_open)
+        print("✅ IMU Serial Opened:", ser.is_open)
         time.sleep(1)
+
         while True:
-            sio = create_sio()
+            if not sio.connected:
+                print("🔁 IMU SocketIO lost. Reconnecting...")
+                sio = create_resilient_sio("IMU")
+
             RXdata = ser.read(1)
             if not RXdata:
                 continue
+
             try:
                 value = int(RXdata.hex(), 16)
             except ValueError:
                 continue
+
             result = DueData(value)
             if result:
-                imu_data = ['%.2f' % result[0], '%.2f' % result[1], '%.2f' % (result[2]-167)]
-                sio.emit("get_imu", imu_data)
-                print(f"📤 Sent IMU data: {imu_data}")
-                # time.sleep(5)
+                imu_data = ['%.2f' % result[0], '%.2f' % result[1], '%.2f' % (result[2] - 167)]
+                try:
+                    if sio.connected:
+                        sio.emit("get_imu", imu_data)
+                        print(f"📤 Sent IMU data: {imu_data}")
+                except Exception as e:
+                    print(f"❌ IMU emit error: {e}")
+                    time.sleep(1)
+
     except Exception as e:
-        print(f"❌ IMU process error: {e}")
+        print(f"❌ IMU process fatal error: {e}")
         time.sleep(3)
 
 def parse_nmea_gpgga(sentence):
     if sentence.startswith('$GPGGA'):
         parts = sentence.split(',')
-        if len(parts) >= 10 and parts[6] != '0':  # 確保已定位
+        if len(parts) >= 10 and parts[6] != '0':
             time_str = parts[1]
             lat_raw, lat_dir = parts[2], parts[3]
             lon_raw, lon_dir = parts[4], parts[5]
             alt = parts[9]
 
             try:
-                # 緯度轉十進位
                 lat_deg = float(lat_raw[:2]) + float(lat_raw[2:]) / 60.0
                 if lat_dir == 'S':
                     lat_deg *= -1
 
-                # 經度轉十進位
                 lon_deg = float(lon_raw[:3]) + float(lon_raw[3:]) / 60.0
                 if lon_dir == 'W':
                     lon_deg *= -1
@@ -100,56 +117,57 @@ def parse_nmea_gpgga(sentence):
                 return None, None, None, None
     return None, None, None, None
 
-
 def gps_process_func():
-    
     port = GPS
     baud = 4800
+    sio = create_resilient_sio("GPS")
+
     try:
-        sio = create_sio()
         ser = serial.Serial(port, baud, timeout=0.5)
-        print("✅ GPS Serial is Opened:", ser.is_open)
+        print("✅ GPS Serial Opened:", ser.is_open)
         time.sleep(2)
+
         while True:
+            if not sio.connected:
+                print("🔁 GPS SocketIO lost. Reconnecting...")
+                sio = create_resilient_sio("GPS")
+
             try:
                 line = ser.readline().decode('ascii', errors='replace').strip()
                 if line:
-                    print(f"📥 接收到的NMEA語句: {line}")
+                    print(f"📥 NMEA: {line}")
                     time_str, lat, lon, alt = parse_nmea_gpgga(line)
                     if time_str and lat and lon:
-                        print(f"🕒 時間: {time_str}")
-                        print(f"🧭 緯度: {lat}")
-                        print(f"🧭 經度: {lon}")
-                        print(f"🗻 海拔: {alt} M")
-
                         data = {
                             "time": time_str,
                             "latitude": lat,
                             "longitude": lon,
                             "altitude": alt
                         }
-                        sio.emit("get_gps", data)
-                        print(f"📤 已傳送 GPS data: {data}")
+                        try:
+                            if sio.connected:
+                                sio.emit("get_gps", data)
+                                print(f"📤 Sent GPS data: {data}")
+                        except Exception as e:
+                            print(f"❌ GPS emit error: {e}")
                         time.sleep(5)
                     else:
                         print("⚠️ GPGGA 無有效座標")
             except Exception as e:
-                print(f"❌ GPS 資料解析錯誤: {e}")
+                print(f"❌ GPS parse error: {e}")
                 time.sleep(3)
     except Exception as e:
-        print(f"❌ GPS 串口連接失敗: {e}")
+        print(f"❌ GPS Serial connect error: {e}")
         time.sleep(3)
 
-
-
-
 def push_video_process_func():
-    sio = create_sio()
+    sio = create_resilient_sio("Video")
     sio.emit("get_video_info", {"device": "edge_01", "url": RTSP_URL})
     retry_count = 0
+
     while True:
         if not os.path.exists(VIDEO_DEVICE):
-            print(f"⚠️ Video device {VIDEO_DEVICE} not found. Retrying in 5 seconds...")
+            print(f"⚠️ Video device {VIDEO_DEVICE} not found. Retrying...")
             time.sleep(5)
             retry_count += 1
             if retry_count % 6 == 0:
@@ -157,7 +175,7 @@ def push_video_process_func():
             continue
 
         retry_count = 0
-        print(f"✅ Pushing video stream to {RTSP_URL}")
+        print(f"✅ Pushing video to {RTSP_URL}")
 
         cmd = [
             "ffmpeg",
@@ -189,7 +207,7 @@ if __name__ == "__main__":
         imu_proc = Process(target=imu_process_func)
         lidar_proc = Process(target=lidar_process_func)
         video_proc = Process(target=push_video_process_func)
-        gps_proc =Process(target=gps_process_func)
+        gps_proc = Process(target=gps_process_func)
 
         imu_proc.start()
         lidar_proc.start()
