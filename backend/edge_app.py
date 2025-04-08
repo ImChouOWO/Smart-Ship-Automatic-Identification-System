@@ -178,7 +178,7 @@ def push_video_process_func():
 
 if __name__ == "__main__":
     try:
-        multiprocessing.set_start_method("fork")
+        multiprocessing.set_start_method("spawn")
         imu_proc = Process(target=imu_process_func)
         lidar_proc = Process(target=lidar_process_func)
         video_proc = Process(target=push_video_process_func)
