@@ -69,61 +69,65 @@ def imu_process_func():
 def parse_nmea_gpgga(sentence):
     if sentence.startswith('$GPGGA'):
         parts = sentence.split(',')
-        if len(parts) >= 10 and parts[6] != '0':  # 有定位
+        if len(parts) >= 10 and parts[6] != '0':  # 確保已定位
             time_str = parts[1]
             lat_raw, lat_dir = parts[2], parts[3]
             lon_raw, lon_dir = parts[4], parts[5]
             alt = parts[9]
 
-            # 緯度轉換成度
-            lat_deg = float(lat_raw[:2]) + float(lat_raw[2:]) / 60 if lat_raw else 0
-            if lat_dir == 'S':
-                lat_deg = -lat_deg
+            try:
+                # 緯度轉十進位
+                lat_deg = float(lat_raw[:2]) + float(lat_raw[2:]) / 60.0
+                if lat_dir == 'S':
+                    lat_deg *= -1
 
-            # 經度轉換成度
-            lon_deg = float(lon_raw[:3]) + float(lon_raw[3:]) / 60 if lon_raw else 0
-            if lon_dir == 'W':
-                lon_deg = -lon_deg
+                # 經度轉十進位
+                lon_deg = float(lon_raw[:3]) + float(lon_raw[3:]) / 60.0
+                if lon_dir == 'W':
+                    lon_deg *= -1
 
-            return time_str, lat_deg, lon_deg, float(alt)
+                return time_str, lat_deg, lon_deg, float(alt)
+            except ValueError:
+                return None, None, None, None
     return None, None, None, None
+
 
 def gps_process_func():
     sio = create_sio()
-    prot = GPS
+    port = GPS
     baud = 4800
     try:
-        ser = serial.Serial(prot,baud, timeout=0.5)
+        ser = serial.Serial(port, baud, timeout=0.5)
         print("✅ GPS Serial is Opened:", ser.is_open)
-        time.sleep(5)
+        time.sleep(2)
         while True:
             try:
                 line = ser.readline().decode('ascii', errors='replace').strip()
                 if line:
-                    print(f"接收到的NMEA語句: {line}")
-                    time_str, lat, lat_dir, lon, lon_dir, alt = parse_nmea_gpgga(line)
+                    print(f"📥 接收到的NMEA語句: {line}")
+                    time_str, lat, lon, alt = parse_nmea_gpgga(line)
                     if time_str and lat and lon:
-                        print(f"時間: {time_str}")
-                        print(f"緯度: {lat} {lat_dir}")
-                        print(f"經度: {lon} {lon_dir}")
-                        print(f"海拔: {alt} M")
+                        print(f"🕒 時間: {time_str}")
+                        print(f"🧭 緯度: {lat}")
+                        print(f"🧭 經度: {lon}")
+                        print(f"🗻 海拔: {alt} M")
+
                         data = {
-                            "time":time_str,
-                            "latitude":lat,
-                            "longitude":lon,
-                            "altitude":alt
+                            "time": time_str,
+                            "latitude": lat,
+                            "longitude": lon,
+                            "altitude": alt
                         }
-                        sio.emit("get_gps",data)
-                        print(f"📤 Sent IMU data: {data}")
+                        sio.emit("get_gps", data)
+                        print(f"📤 已傳送 GPS data: {data}")
                         time.sleep(5)
                     else:
-                        print("GPGGA data not avaliable...")
-                        time.sleep(5)
-            except ValueError:
-                print("NMEA data not avaliable...")
-                continue             
+                        print("⚠️ GPGGA 無有效座標")
+            except Exception as e:
+                print(f"❌ GPS 資料解析錯誤: {e}")
     except Exception as e:
-        print(f'erro:{e}')
+        print(f"❌ GPS 串口連接失敗: {e}")
+
 
 
 
