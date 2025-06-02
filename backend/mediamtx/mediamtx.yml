@@ -231,6 +231,7 @@ rtspTransports: [udp, multicast, tcp]
 # Available values are "no", "strict", "optional".
 rtspEncryption: "no"
 # Address of the TCP/RTSP listener. This is needed only when encryption is "no" or "optional".
+rtsp: yes
 rtspAddress: :8554
 # Address of the TCP/TLS/RTSPS listener. This is needed only when encryption is "strict" or "optional".
 rtspsAddress: :8322
@@ -343,7 +344,6 @@ webrtc: yes
 webrtcAddress: :8889
 # Enable TLS/HTTPS on the WebRTC server.
 webrtcEncryption: no
-webrtcIceHostNAT1To1: ["140.133.74.176"]
 webrtcAdditionalHosts: ["140.133.74.176"]
 # Path to the server key.
 # This can be generated with:
