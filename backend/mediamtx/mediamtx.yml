@@ -14,12 +14,12 @@ logDestinations: [stdout]
 logFile: mediamtx.log
 
 # Timeout of read operations.
-readTimeout: 10s
+readTimeout: 30s
 # Timeout of write operations.
-writeTimeout: 10s
+writeTimeout: 30s
 # Size of the queue of outgoing packets.
 # A higher value allows to increase throughput, a lower value allows to save RAM.
-writeQueueSize: 512
+writeQueueSize: 2048
 # Maximum size of outgoing UDP packets.
 # This can be decreased to avoid fragmentation on networks with a low UDP MTU.
 udpMaxPayloadSize: 1472
@@ -221,6 +221,7 @@ playbackTrustedProxies: []
 
 # Enable publishing and reading streams with the RTSP protocol.
 rtsp: yes
+rtspTransports: [tcp]
 # List of enabled RTSP transport protocols.
 # UDP is the most performant, but doesn't work when there's a NAT/firewall between
 # server and clients, and doesn't support encryption.
@@ -344,6 +345,8 @@ webrtc: yes
 webrtcAddress: :8889
 # Enable TLS/HTTPS on the WebRTC server.
 webrtcEncryption: no
+webrtcIceHostNAT1To1: ["140.133.74.176"]
+webrtcAdditionalHosts: ["140.133.74.176"]
 # Path to the server key.
 # This can be generated with:
 # openssl genrsa -out server.key 2048
@@ -701,15 +704,11 @@ pathDefaults:
 #   edge_cam:
 #     source: publisher
 #     record: false
-
+rtmp: no
+hls:  no
+srt:  no
 paths:
   edge_cam:
     source: publisher
+    maxReaders: 10
     record: false
-  # example:
-  # my_camera:
-  #   source: rtsp://my_camera
-
-  # Settings under path "all_others" are applied to all paths that
-  # do not match another entry.
-  all_others:
