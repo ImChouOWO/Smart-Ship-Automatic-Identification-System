@@ -180,18 +180,30 @@ def push_video_process_func():
 
         cmd = [
             "ffmpeg",
-            "-re",
             "-f", "v4l2",
-            "-framerate", "30",
-            "-video_size", "1280x720",
+            "-input_format", "nv12",             # ✅ 採用硬體原生支援格式
+            "-framerate", "30",                  # ✅ 降低到 30 fps 穩定又省頻寬
+            "-video_size", "1920x1080",          # ✅ 全高清，保畫質
+
             "-i", VIDEO_DEVICE,
-            "-vcodec", "libx264",
-            "-preset", "ultrafast",
-            "-tune", "zerolatency",
-            "-an",
+
+            "-c:v", "h264_nvenc",                # ✅ Jetson 專用硬體編碼器
+            "-preset", "p4",                     # ✅ 速度優先
+            "-tune", "ll",                       # ✅ low latency
+            "-profile:v", "baseline",           # ✅ 瀏覽器相容
+
+            "-b:v", "2.5M",                      # ✅ 固定頻寬，防止突波壓爆 queue
+            "-maxrate", "2.5M",
+            "-bufsize", "5M",
+            "-g", "30",                          # ✅ 每秒一個 I-frame，利 WebRTC
+            "-bf", "0",                          # ✅ 關 B-frame，低延遲
+
+            "-an",                               # ✅ 無音訊（可選）
             "-f", "rtsp",
+            "-rtsp_transport", "tcp",            # ✅ 行動網建議用 TCP
             RTSP_URL
         ]
+
 
         try:
             process = subprocess.Popen(cmd)
