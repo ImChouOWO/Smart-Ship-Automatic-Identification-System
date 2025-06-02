@@ -220,8 +220,6 @@ playbackTrustedProxies: []
 # Global settings -> RTSP server
 
 # Enable publishing and reading streams with the RTSP protocol.
-rtsp: yes
-rtspTransports: [tcp]
 # List of enabled RTSP transport protocols.
 # UDP is the most performant, but doesn't work when there's a NAT/firewall between
 # server and clients, and doesn't support encryption.
@@ -704,7 +702,6 @@ pathDefaults:
 #   edge_cam:
 #     source: publisher
 #     record: false
-rtmp: no
 hls:  no
 srt:  no
 paths:
