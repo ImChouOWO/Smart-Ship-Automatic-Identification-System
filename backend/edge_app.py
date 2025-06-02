@@ -181,28 +181,30 @@ def push_video_process_func():
         cmd = [
             "ffmpeg",
             "-f", "v4l2",
-            "-input_format", "nv12",             # ✅ 採用硬體原生支援格式
-            "-framerate", "30",                  # ✅ 降低到 30 fps 穩定又省頻寬
-            "-video_size", "1920x1080",          # ✅ 全高清，保畫質
+            "-input_format", "yuyv422",              # ✅ 相機支援的格式（請勿用 nv12，除非明確支援）
+            "-framerate", "25",                      # ✅ 穩定值，節省頻寬，減少卡頓
+            "-video_size", "1280x720",               # ✅ 720p 足以辨識目標，也比 1080p 穩定
 
             "-i", VIDEO_DEVICE,
 
-            "-c:v", "h264_nvenc",                # ✅ Jetson 專用硬體編碼器
-            "-preset", "p4",                     # ✅ 速度優先
-            "-tune", "ll",                       # ✅ low latency
-            "-profile:v", "baseline",           # ✅ 瀏覽器相容
+            "-c:v", "libx264",                       # ✅ 使用軟體編碼，穩定但吃 CPU
+            "-pix_fmt", "yuv420p",                   # ✅ 相容大多數瀏覽器與播放端
+            "-preset", "ultrafast",                  # ✅ 編碼延遲最低
+            "-tune", "zerolatency",                  # ✅ 最佳化即時串流
 
-            "-b:v", "2.5M",                      # ✅ 固定頻寬，防止突波壓爆 queue
-            "-maxrate", "2.5M",
-            "-bufsize", "5M",
-            "-g", "30",                          # ✅ 每秒一個 I-frame，利 WebRTC
-            "-bf", "0",                          # ✅ 關 B-frame，低延遲
+            "-profile:v", "baseline",                # ✅ 增加與 WebRTC 瀏覽器相容性
+            "-b:v", "1.5M",                          # ✅ 固定碼率，防突發頻寬問題
+            "-maxrate", "1.5M",
+            "-bufsize", "3M",
+            "-g", "50",                              # ✅ 每兩秒一個 I-frame
+            "-keyint_min", "50",                     # ✅ 配合 GOP 長度
 
-            "-an",                               # ✅ 無音訊（可選）
+            "-an",                                   # ✅ 無音訊
             "-f", "rtsp",
-            "-rtsp_transport", "tcp",            # ✅ 行動網建議用 TCP
+            "-rtsp_transport", "tcp",                # ✅ 行動網建議使用 TCP，較穩
             RTSP_URL
         ]
+
 
 
         try:
