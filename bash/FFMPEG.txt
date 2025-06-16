@@ -1,0 +1,4 @@
+ffmpeg -f x11grab -framerate 30 -video_size 1280x720 -i :0.0 \
+-pix_fmt yuv420p \
+-vcodec libx264 -profile:v baseline -preset ultrafast -tune zerolatency \
+-f rtsp -rtsp_transport tcp rtsp://140.133.74.176:8554/edge_cam
