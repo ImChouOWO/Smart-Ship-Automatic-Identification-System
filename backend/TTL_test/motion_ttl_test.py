@@ -46,8 +46,6 @@ def generate_packet():
     bcc = calculate_bcc(packet)
     packet.append(bcc)
 
-    # 選擇性加上結尾標記（如 0x6E）供 Arduino 做分包顯示
-    packet.append(0x6E)
 
     return packet
 
@@ -83,8 +81,8 @@ def receive_packet():
 # === 主傳送迴圈 ===
 try:
     while True:
-        threading.Thread(target=send_packet, daemon=True).start()
-        threading.Thread(target=receive_packet, daemon=True).start()
+        send_packet()
+        receive_packet()
         time.sleep(1)
 
 except KeyboardInterrupt:
