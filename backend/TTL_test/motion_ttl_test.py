@@ -54,6 +54,7 @@ def send_packet():
         packet = generate_packet()
         ser.write(bytearray(packet))
         # print("📤 傳送封包:", ' '.join(f'0x{b:02X}' for b in packet))
+        receive_packet()
         time.sleep(0.5)  # 每秒傳送一次
 
 def receive_packet():
@@ -82,7 +83,7 @@ def receive_packet():
 try:
     while True:
         send_packet()
-        receive_packet()
+        
         time.sleep(1)
 
 except KeyboardInterrupt:
