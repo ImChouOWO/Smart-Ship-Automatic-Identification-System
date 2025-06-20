@@ -9,7 +9,7 @@ def calculate_bcc(data):
     return bcc
 
 # 設定 serial port（依照你的實際設備調整）
-ser = serial.Serial('/dev/ttyUSB4', 115600, timeout=1)
+ser = serial.Serial('/dev/ttyUSB4', 9600, timeout=1)
 
 # 定義封包組成資料
 def build_packet():
