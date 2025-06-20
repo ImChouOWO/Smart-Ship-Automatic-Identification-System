@@ -55,7 +55,7 @@ def send_packet():
     while True:
         packet = generate_packet()
         ser.write(bytearray(packet))
-        print("📤 傳送封包:", ' '.join(f'0x{b:02X}' for b in packet))
+        # print("📤 傳送封包:", ' '.join(f'0x{b:02X}' for b in packet))
         time.sleep(0.5)  # 每秒傳送一次
 
 def receive_packet():
@@ -85,7 +85,7 @@ try:
     while True:
         threading.Thread(target=send_packet, daemon=True).start()
         threading.Thread(target=receive_packet, daemon=True).start()
-        time.sleep(0.05)
+        time.sleep(1)
 
 except KeyboardInterrupt:
     print("⛔ 傳送中止")
