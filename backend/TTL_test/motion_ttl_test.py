@@ -61,9 +61,7 @@ def receive_packet():
     PACKET_LEN = 11
     HEADER_BYTE = 0x1B
     buffer = bytearray()
-
-    while True:
-        if ser.in_waiting:
+    if ser.in_waiting:
             buffer += ser.read(ser.in_waiting)
 
             while len(buffer) >= PACKET_LEN:
@@ -92,6 +90,8 @@ def receive_packet():
 
                 # 移除處理過的封包
                 buffer = buffer[PACKET_LEN:]
+    
+        
 
 
 # === 主傳送迴圈 ===
