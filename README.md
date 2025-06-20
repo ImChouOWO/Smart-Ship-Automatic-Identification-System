@@ -8,7 +8,8 @@
 **船舶AIS監控系統**是一個實時應用，用於監控和分析船舶數據，包括GPS位置、IMU數據、5G信號強度和即時攝影畫面。該應用還集成了動態地圖功能，以可視化顯示船舶的當前位置。
 
 ---
-##相關依賴(Nessary dependencies)
+
+## 相關依賴(Nessary dependencies)
 
 1.Node.js
 2.npm
@@ -45,7 +46,7 @@ npm  install react@rc react-dom@rc leaflet
 
 ---
 
-## 技術棧 (Tech Stack)
+## 使用技術 (Tech Stack)
 
 ### 前端框架與庫 (Frontend Frameworks and Libraries)
 1. **React.js**
@@ -67,9 +68,83 @@ npm  install react@rc react-dom@rc leaflet
 
 ---
 
+### 串流技術（streaming）
+1. **FFMPEG (Edge端)**
+   
+   可以透過此指令測試AGX的RTSP推流功能
+   ```
+   ffmpeg -f x11grab -framerate 30 -video_size 1280x720 -i :0.0 \
+   -pix_fmt yuv420p \
+   -vcodec libx264 -profile:v baseline -preset ultrafast -tune zerolatency \
+   -f rtsp -rtsp_transport tcp rtsp://140.133.74.176:8554/edge_cam
+   ```
+2. **MediaMTX (Server端)**
+   
+>[!NOTE] 
+> MediaMTX 是一個輕量級串流伺服器，具備低延遲與高穩定性。
+
+3. **Sim卡功能**
+>[!NOTE] 
+> 5G晶片型號：Quectel RM520N-GL
+>
+>[Quectel RM520N-GL 驅動](https://github.com/4IceG/RM520N-GL)
+
+**步驟 1：下載驅動來源碼**
+```
+git clone https://github.com/4IceG/RM520N-GL.git
+cd RM520N-GL
+```
+
+**步驟 2：安裝必要的依賴套件**
+```
+sudo apt update
+sudo apt install -y build-essential libelf-dev linux-headers-$(uname -r)
+```
+**步驟 3：編譯並安裝 QMI WWAN 驅動**
+```
+cd drivers/quectel_QMI_WWAN
+make
+sudo make install
+sudo modprobe qmi_wwan
+```
+
+**步驟 4：編譯並安裝 option 模組，並加入 VID:PID**
+```
+cd ../option
+make
+sudo make install
+sudo modprobe option
+echo 2c7c 0800 | sudo tee /sys/bus/usb-serial/drivers/option1/new_id
+```
+
+**步驟 5：確認模組已載入並辨識裝置**
+```
+lsmod | grep -e option -e qmi_wwan
+ls /dev/ttyUSB*
+dmesg | grep -i ttyUSB
+```
+**步驟 6：安裝 ModemManager 與 NetworkManager 並啟動服務**
+```
+sudo apt install modemmanager network-manager
+sudo systemctl restart ModemManager
+```
+**步驟 7：建立與啟用 5G 撥號連線（依你的裝置名稱調整 ttyUSBx）**
+```
+nmcli connection add type gsm ifname ttyUSB2 con-name 5g-sim apn internet
+nmcli connection up 5g-sim
+```
+
+
+   
+
+
+
+
 ### 展示（Demo）
 
 ![demo](front/img/AIS.png)
+
+### 使用須知
 
 
 
