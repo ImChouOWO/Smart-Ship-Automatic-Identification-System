@@ -83,8 +83,9 @@ def receive_packet():
 # === 主傳送迴圈 ===
 try:
     while True:
-        threading.Thread(target=send_packet, daemon=True)
-        threading.Thread(target=receive_packet, daemon=True)
+        threading.Thread(target=send_packet, daemon=True).start()
+        threading.Thread(target=receive_packet, daemon=True).start()
+        time.sleep(0.05)
 
 except KeyboardInterrupt:
     print("⛔ 傳送中止")
