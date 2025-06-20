@@ -68,7 +68,7 @@ def receive_packet():
                 # 重新同步：丟掉非 0x1B 開頭的資料
                 if buffer[0] != HEADER_BYTE:
                     lost = buffer.pop(0)
-                    print(f"⚠️ 丟棄錯位資料 0x{lost:02X}")
+                    # print(f"⚠️ 丟棄錯位資料 0x{lost:02X}")
                     continue
 
                 # 嘗試擷取一包
