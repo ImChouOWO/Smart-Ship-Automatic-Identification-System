@@ -84,6 +84,7 @@ def receive_packet():
 try:
     while True:
         threading.Thread(target=send_packet, daemon=True)
+        threading.Thread(target=receive_packet, daemon=True)
 
 except KeyboardInterrupt:
     print("⛔ 傳送中止")
