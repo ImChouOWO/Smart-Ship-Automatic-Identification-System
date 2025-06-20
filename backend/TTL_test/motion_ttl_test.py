@@ -99,7 +99,7 @@ try:
     while True:
         send_packet()
         
-        time.sleep(1)
+        time.sleep(0.5)
 
 except KeyboardInterrupt:
     print("⛔ 傳送中止")

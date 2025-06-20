@@ -157,7 +157,7 @@ void loop() {
   if (use_simulation) {
     simulate_navigation();
   } else {
-    delay(500);
+    delay(10);
     parse_real_packet();
   }
 
