@@ -59,25 +59,40 @@ def send_packet():
 
 def receive_packet():
     PACKET_LEN = 11
+    HEADER_BYTE = 0x1B
     buffer = bytearray()
+
     while True:
         if ser.in_waiting:
             buffer += ser.read(ser.in_waiting)
 
             while len(buffer) >= PACKET_LEN:
-                packet = buffer[:PACKET_LEN]
-                buffer = buffer[PACKET_LEN:]
+                # 重新同步：丟掉非 0x1B 開頭的資料
+                if buffer[0] != HEADER_BYTE:
+                    lost = buffer.pop(0)
+                    print(f"⚠️ 丟棄錯位資料 0x{lost:02X}")
+                    continue
 
+                # 嘗試擷取一包
+                packet = buffer[:PACKET_LEN]
+
+                # 若 BCC 錯誤，也移動一格繼續尋找正確開頭
                 data = packet[:-1]
                 received_bcc = packet[-1]
                 calculated_bcc = calculate_bcc(data)
 
-                print("📥 接收封包:", ' '.join(f'0x{b:02X}' for b in packet))
-
                 if received_bcc != calculated_bcc:
-                    print(f"❌ BCC 錯誤：接收 {hex(received_bcc)} ≠ 計算 {hex(calculated_bcc)}\n")
-                else:
-                    print("✅ BCC 驗證成功\n")
+                    print(f"❌ 錯誤封包: BCC 錯誤 (接收 {hex(received_bcc)} ≠ 計算 {hex(calculated_bcc)})")
+                    buffer.pop(0)  # 移除錯位頭，尋找下一個 0x1B
+                    continue
+
+                # 成功封包處理
+                print("📥 接收封包:", ' '.join(f'0x{b:02X}' for b in packet))
+                print("✅ BCC 驗證成功\n")
+
+                # 移除處理過的封包
+                buffer = buffer[PACKET_LEN:]
+
 
 # === 主傳送迴圈 ===
 try:

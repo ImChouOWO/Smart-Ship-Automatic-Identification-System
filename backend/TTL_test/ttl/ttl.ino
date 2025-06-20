@@ -54,12 +54,13 @@ void send_packet(int speed, int direction) {
     0x03, 0x01
   };
   byte bcc = calculate_bcc(packet, sizeof(packet));
+  
   for (int i = 0; i < sizeof(packet); i++) {
-    Serial.write(packet[i]);
+    Serial.write(packet[i]); 
   }
   Serial.write(bcc);
-  Serial.println("\n📤 已傳送導航封包");
 }
+
 
 // === 導航核心邏輯 ===
 void compute_and_send(float lat, float lon, float heading) {
