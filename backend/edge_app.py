@@ -8,12 +8,16 @@ from multiprocessing import Process
 import multiprocessing
 import serial
 
+
 SERVER_URL = 'http://140.133.74.176:5000'
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 VIDEO_DEVICE = '/dev/video0'
 IMU = '/dev/imu'
 LIDAR = '/dev/ttyUSB5'
 GPS = "/dev/gps"
+POWER_SER = ""
+MOTION_SER = ""
+BAUDRATE = 9600
 
 def create_resilient_sio(name="module"):
     while True:
@@ -120,10 +124,14 @@ def parse_nmea_gpgga(sentence):
 def gps_process_func():
     port = GPS
     baud = 4800
+    baud_motion = BAUDRATE
     sio = create_resilient_sio("GPS")
 
     try:
         ser = serial.Serial(port, baud, timeout=0.5)
+        motion_port = MOTION_SER
+        motion_ser = serial.Serial(port=motion_port, baudrate=baud_motion, timeout=1)
+        
         print("✅ GPS Serial Opened:", ser.is_open)
         time.sleep(2)
 
@@ -145,13 +153,14 @@ def gps_process_func():
                             "longitude": lon,
                             "altitude": alt
                         }
+                        connect_to_motion(lat, lon, motion_ser)
                         try:
                             if sio.connected:
+
                                 sio.emit("get_gps", data)
                                 print(f"📤 Sent GPS data: {data}")
                         except Exception as e:
                             print(f"❌ GPS emit error: {e}")
-                        time.sleep(5)
                     else:
                         print("⚠️ GPGGA 無有效座標")
             except Exception as e:
@@ -160,6 +169,111 @@ def gps_process_func():
     except Exception as e:
         print(f"❌ GPS Serial connect error: {e}")
         time.sleep(3)
+
+def calculate_bcc(data):
+    bcc = 0
+    for byte in data:
+        bcc ^= byte
+    return bcc
+
+def connect_to_motion(lat, lon, motion_ser):
+    
+    try:
+        
+        print("✅ Motion Controller Serial Opened:", motion_ser.is_open)
+        packet = generate_packet(lat, lon)
+        send_recive_data(packet)
+    except Exception as e:
+        print(f"❌ Motion Serial connect error: {e}")
+        return
+    
+    def generate_packet(lat, lon):
+        header = 0x1B
+        command = 0x04
+        sequence = 0x01
+        opcode = 0x01
+        separator = 0x7C
+        speed = 0x09
+        direction = 0x02
+        timestamp = [0x0E, 0x20, 0x11]  # 假設固定時間碼，可換成 RTC
+        send_role = 0x01
+        receive_role = 0x03
+
+        # 轉換成 0.0001 度單位後轉成 3 byte（大端序）
+        lat_raw = int(lat * 10000)
+        lon_raw = int(lon * 10000)
+
+        lat_bytes = [(lat_raw >> 16) & 0xFF, (lat_raw >> 8) & 0xFF, lat_raw & 0xFF]
+        lon_bytes = [(lon_raw >> 16) & 0xFF, (lon_raw >> 8) & 0xFF, lon_raw & 0xFF]
+
+        data = (
+            lat_bytes + [separator] +
+            lon_bytes + [separator] +
+            [speed, separator, direction] +
+            timestamp
+        )
+
+        length = len(data)
+
+        packet = [
+            header, command, sequence, opcode, length
+        ] + data + [send_role, receive_role]
+
+        bcc = calculate_bcc(packet)
+        packet.append(bcc)
+        return packet
+    
+    def receive_packet():
+        PACKET_LEN = 11
+        HEADER_BYTE = 0x1B
+        buffer = bytearray()
+        if motion_ser.in_waiting:
+                buffer += motion_ser.read(motion_ser.in_waiting)
+
+                while len(buffer) >= PACKET_LEN:
+                    # 重新同步：丟掉非 0x1B 開頭的資料
+                    if buffer[0] != HEADER_BYTE:
+                        lost = buffer.pop(0)
+                        # print(f"⚠️ 丟棄錯位資料 0x{lost:02X}")
+                        continue
+
+                    # 嘗試擷取一包
+                    packet = buffer[:PACKET_LEN]
+
+                    # 若 BCC 錯誤，也移動一格繼續尋找正確開頭
+                    data = packet[:-1]
+                    received_bcc = packet[-1]
+                    calculated_bcc = calculate_bcc(data)
+
+                    if received_bcc != calculated_bcc:
+                        print(f"❌ 錯誤封包: BCC 錯誤 (接收 {hex(received_bcc)} ≠ 計算 {hex(calculated_bcc)})")
+                        buffer.pop(0)  # 移除錯位頭，尋找下一個 0x1B
+                        continue
+
+                    # 成功封包處理
+                    print("📥 接收封包:", ' '.join(f'0x{b:02X}' for b in packet))
+                    print("✅ BCC 驗證成功\n")
+
+                    # 移除處理過的封包
+                    buffer = buffer[PACKET_LEN:]
+    
+    
+    def send_recive_data(packet):
+        if packet != None:
+            motion_ser.write(bytearray(packet))
+            motion_data = receive_packet()
+            time.sleep(0.5)
+            return motion_data
+            
+        else:
+            print("No data can send to motion system")
+   
+
+def connect_to_power():
+    pass
+
+def ship_controller():
+    pass
 
 def push_video_process_func():
     sio = create_resilient_sio("Video")
@@ -236,3 +350,25 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("🛑 KeyboardInterrupt. Closing connection...")
+
+
+
+#                _ooOoo_
+#               o8888888o
+#               88" . "88
+#               (| -_- |)
+#               O\  =  /O
+#            ____/`---'\____
+#          .'  \\|     |//  `.
+#         /  \\|||  :  |||//  \
+#        /  _||||| -:- |||||_  \
+#        |   | \\\  -  /// |   |
+#        | \_|  ''\---/''  |_/ |
+#        \  .-\__  `-`  ___/-. /
+#      ___`. .'  /--.--\  `. .'___
+#   ."" '<  `.___\_<|>_/___.' _> \"".
+#  | | :  `- \`.;`\ _ /`;.`/ - ` : | |
+#  \  \ `-.   \_ __\ /__ _/   .-` /  /
+# ======`-.____`-.___\_____/__.-`____.-'======
+#                `=---='
+
