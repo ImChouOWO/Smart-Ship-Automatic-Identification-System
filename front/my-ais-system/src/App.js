@@ -6,7 +6,8 @@ import {
   Compass, Navigation, Webcam, Signal, AlertTriangle, BatteryCharging, Move
 } from 'lucide-react';
 import {
-  Card, CardContent, CardHeader, Box, Typography, LinearProgress
+  Card, CardContent, CardHeader, Box, Typography, LinearProgress,
+  Fab
 } from '@mui/material';
 import Ship from './page/ship';
 import { io } from "socket.io-client";
@@ -32,6 +33,8 @@ const MapUpdater = ({ position }) => {
 
 const App = () => {
   const socket = io('http://140.133.74.176:5000');
+  const [motionStatus, setMotionStatus] = useState(false);
+  const [powerStatus, setPowerStatus] = useState(false);
   const [shipData, setShipData] = useState({
     heading: 45,
     speed: 12.5,
@@ -138,13 +141,35 @@ const App = () => {
         {/* Status + GPS */}
         <Box display="flex" gap={3} mb={3}>
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
+            <CardHeader title="Module Status" avatar={<AlertTriangle color="#00AEEF" />} />
             <CardContent>
-              <Box display="flex" alignItems="center" gap={1}>
-                <AlertTriangle color="#FFA500" />
-                <Typography color="#FFA500">System Operating Normally</Typography>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Box
+                    sx={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      bgcolor: motionStatus ? '#00FF00' : '#FF0000'
+                    }}
+                  />
+                  <Typography>Motion</Typography>
+                </Box>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Box
+                    sx={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      bgcolor: powerStatus ? '#00FF00' : '#FF0000'
+                    }}
+                  />
+                  <Typography>Power</Typography>
+                </Box>
               </Box>
             </CardContent>
           </Card>
+
 
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
             <CardHeader title="GPS Location" avatar={<Navigation color="#00AEEF" />} />
