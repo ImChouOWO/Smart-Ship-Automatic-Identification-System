@@ -139,7 +139,6 @@ mkdir firmware_build && cd firmware_build
 unzip /path/to/Firmware.zip .
 sudo ./qfirehose -f /tmp/rm_fw
 ```
->[!NOTE] 
 >成功後會顯示 `Upgrade Module successfully`
 
 **步驟 5：確認模組已載入並辨識裝置**
