@@ -5,7 +5,7 @@
 # 船舶AIS監控系統文檔 (Ship AIS Monitoring System Documentation)
 
 ## 簡介 (Introduction)
-**船舶AIS監控系統**是一個實時應用，用於監控和分析船舶數據，包括GPS位置、IMU數據、5G信號強度和即時攝影畫面。該應用還集成了動態地圖功能，以可視化顯示船舶的當前位置。
+**船舶AIS監控系統**是一個實時應用，用於監控和分析船舶數據，包括GPS位置、IMU數據、5G信號強度和即時攝影畫面該應用還集成了動態地圖功能，以可視化顯示船舶的當前位置
 
 ---
 
@@ -27,45 +27,56 @@ npm  install react@rc react-dom@rc leaflet
 ---
 ## 功能 (Features)
 1. **實時攝影機畫面 (Real-time Camera Feed)**
-   - 顯示船舶的即時攝影畫面。
-   - 在示例中模擬為佔位圖像。
+   - 顯示船舶的即時攝影畫面
+   - 在示例中為模擬圖像
 
 2. **GPS位置顯示 (GPS Location Display)**
-   - 顯示船舶的當前緯度、經度和速度。
+   - 顯示船舶的當前緯度、經度和速度
 
 3. **IMU數據監控 (IMU Data Monitoring)**
-   - 顯示船舶的滾轉角(Roll)、俯仰角(Pitch)和偏航角(Yaw)。
+   - 顯示船舶的滾轉角(Roll)、俯仰角(Pitch)和偏航角(Yaw)
 
 4. **5G信號強度指示 (5G Signal Strength Indicator)**
-   - 以百分比形式顯示當前5G信號強度。
-   - 包括一個進度條以進行可視化展示。
+   - 以百分比形式顯示當前5G信號強度
+   - 包括一個進度條以進行可視化展示
 
 5. **地圖集成 (Map Integration)**
-   - 使用交互式地圖顯示船舶的實時位置。
-   - 在地圖上添加標記和彈出窗口顯示詳細位置信息。
+   - 使用交互式地圖顯示船舶的實時位置
+   - 在地圖上添加標記和彈出窗口顯示詳細位置信息
 
+6. **串流功能（Streaming）**
+   - 使用FFMEPG與MediaMTX
+   - 邊緣端以RTSP實現推流
+   - 伺服器端以WebRTC實現串流的轉發
+7. **子系統通訊（Sub system connection）**
+   - 以TTL傳遞UART訊號
 ---
 
 ## 使用技術 (Tech Stack)
 
 ### 前端框架與庫 (Frontend Frameworks and Libraries)
 1. **React.js**
-   - 核心框架，用於構建用戶界面。
-   - 基於組件的架構實現可重用性和可擴展性。
+   - 核心框架，用於構建用戶界面
+   - 基於組件的架構實現可重用性和可擴展性
 
 2. **Material-UI (MUI)**
-   - 提供預設設計的UI組件，例如`Card`、`Typography`和`LinearProgress`，用於現代化響應式設計。
+   - 提供預設設計的UI組件，例如`Card`、`Typography`和`LinearProgress`，用於現代化響應式設計
 
 3. **Lucide-React**
-   - 圖標庫，用於添加與船舶相關的圖標，例如`Webcam`、`Compass`和`Navigation`。
+   - 圖標庫，用於添加與船舶相關的圖標，例如`Webcam`、`Compass`和`Navigation`
 
 4. **React-Leaflet**
-   - 用於在React中集成交互式地圖的輕量級庫。
-   - 顯示船舶位置，並添加標記和彈出窗口。
+   - 用於在React中集成交互式地圖的輕量級庫
+   - 顯示船舶位置，並添加標記和彈出窗口
 
 5. **Leaflet**
-   - 一個JavaScript庫，用於渲染交互式地圖。
+   - 一個JavaScript庫，用於渲染交互式地圖
 
+6. **FFMEPG**
+   - 用於實現媒體推播與轉撥的工具
+   
+7. **MediaMTX**
+   - 輕量級且低延遲的串流伺服器
 ---
 
 ### 串流技術（streaming）
@@ -81,7 +92,7 @@ npm  install react@rc react-dom@rc leaflet
 2. **MediaMTX (Server端)**
    
 >[!NOTE] 
-> MediaMTX 是一個輕量級串流伺服器，具備低延遲與高穩定性。
+> MediaMTX 是一個輕量級串流伺服器，具備低延遲與高穩定性
 
 3. **Sim卡功能**
 >[!NOTE] 
