@@ -216,7 +216,6 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         return
     
     def generate_packet(lat, lon, roll, pitch, yaw):
-        global FIRST_SEND
         header = 0x1B
         command = 0x04
         sequence = 0x01
@@ -245,7 +244,7 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         yaw_bytes = [(yaw_raw >> 8) & 0xFF, yaw_raw & 0xFF]
 
         if FIRST_SEND:
-            FIRST_SEND = False
+            
             data = (
                 lat_bytes + [separator] +
                 lon_bytes + [separator] +
@@ -319,10 +318,13 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
     
     
     def send_recive_data(packet, motion_ser):
+
+        global FIRST_SEND
+
         if packet != None:
             motion_ser.write(bytearray(packet))
             packet = receive_packet()
-            
+            FIRST_SEND = False
             time.sleep(0.5)
             return packet
             
