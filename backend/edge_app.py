@@ -125,7 +125,6 @@ def parse_nmea_gpgga(sentence):
 def gps_process_func(shared_gps):
     port = GPS
     baud = 4800
-    baud_motion = BAUDRATE
     sio = create_resilient_sio("GPS")
 
     try:
@@ -176,7 +175,7 @@ def gps_process_func(shared_gps):
 def controller_process_func(shared_imu, shared_gps):
     motion_port = MOTION_SER
     power_port = POWER_SER
-    baud = 9600
+    baud = BAUDRATE
     motion_ser = serial.Serial(port=motion_port, baudrate=baud, timeout=1)
     print("✅ Motion Controller Serial Opened:", motion_ser.is_open)
     power_ser = serial.Serial(port=power_port, baudrate=baud, timeout=1)
