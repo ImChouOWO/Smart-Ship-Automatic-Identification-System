@@ -86,36 +86,47 @@ npm  install react@rc react-dom@rc leaflet
 3. **Sim卡功能**
 >[!NOTE] 
 > 5G晶片型號：Quectel RM520N-GL
->
+> 
 >[Quectel RM520N-GL 驅動](https://github.com/4IceG/RM520N-GL)
+>
+>先行下載對應版本的 QFirehose＆Firmware
+>
+>RM520N-GL/Toolz/ & RM520N-GL/Drivers/ 中有測試用的版本
+
 
 **步驟 1：下載驅動來源碼**
 ```
 git clone https://github.com/4IceG/RM520N-GL.git
-cd RM520N-GL
+cd RM520N-GL/
 ```
+
+
 
 **步驟 2：安裝必要的依賴套件**
 ```
 sudo apt update
-sudo apt install -y build-essential libelf-dev linux-headers-$(uname -r)
+sudo apt install cmake build-essential libusb-1.0-0-dev
 ```
-**步驟 3：編譯並安裝 QMI WWAN 驅動**
+**步驟 3：編譯5G燒錄韌體**
 ```
-cd drivers/quectel_QMI_WWAN
+# QFirehose推薦使用自行下載的版本
+
+cd RM520N-GL/tools/qfirehose
+mkdir build && cd build
+mv /path/to/QFirehose.zip . 
+unzip /path/to/QFirehose.zip
+cmake ..
 make
-sudo make install
-sudo modprobe qmi_wwan
 ```
 
-**步驟 4：編譯並安裝 option 模組，並加入 VID:PID**
+**步驟 4：燒入驅動至5G晶片**
 ```
-cd ../option
-make
-sudo make install
-sudo modprobe option
-echo 2c7c 0800 | sudo tee /sys/bus/usb-serial/drivers/option1/new_id
+mkdir firmware_build && cd firmware_build  
+unzip /path/to/Firmware.zip .
+sudo ./qfirehose -f /tmp/rm_fw
 ```
+>[!NOTE] 
+>成功後會顯示 `Upgrade Module successfully`
 
 **步驟 5：確認模組已載入並辨識裝置**
 ```
