@@ -18,6 +18,9 @@ GPS = "/dev/gps"
 POWER_SER = ""
 MOTION_SER = ""
 BAUDRATE = 9600
+FIRST_SEND = True
+NOW_SPEED =None
+NOW_DIRECTION = None
 
 def create_resilient_sio(name="module"):
     while True:
@@ -213,12 +216,13 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         return
     
     def generate_packet(lat, lon, roll, pitch, yaw):
+        global FIRST_SEND
         header = 0x1B
         command = 0x04
         sequence = 0x01
         opcode = 0x01
         separator = 0x7C
-        speed = 0x42
+        speed = 0x00    
         direction = 0x42
         timestamp = [0x0E, 0x20, 0x11]  # 假設固定時間碼，可換成 RTC
         send_role = 0x01
@@ -240,14 +244,26 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         pitch_bytes = [(pitch_raw >> 8) & 0xFF, pitch_raw & 0xFF]
         yaw_bytes = [(yaw_raw >> 8) & 0xFF, yaw_raw & 0xFF]
 
+        if FIRST_SEND:
+            FIRST_SEND = False
+            data = (
+                lat_bytes + [separator] +
+                lon_bytes + [separator] +
+                [speed, separator, direction] +
+                [separator + roll_bytes +separator + pitch_bytes + separator + yaw_bytes] +
+                timestamp
+            )
 
-        data = (
-            lat_bytes + [separator] +
-            lon_bytes + [separator] +
-            [speed, separator, direction] +
-            [separator + roll_bytes +separator + pitch_bytes + separator + yaw_bytes] +
-            timestamp
-        )
+        else:
+            speed = NOW_SPEED
+            direction = NOW_DIRECTION
+            data = (
+                lat_bytes + [separator] +
+                lon_bytes + [separator] +
+                [speed, separator, direction] +
+                [separator + roll_bytes +separator + pitch_bytes + separator + yaw_bytes] +
+                timestamp
+            )
 
         length = len(data)
 
@@ -267,6 +283,7 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         """
         PACKET_LEN = 11
         HEADER_BYTE = 0x1B
+        global NOW_SPEED, NOW_DIRECTION
         # 使用函式屬性做持久化緩衝區
         buf = getattr(receive_packet, '_buffer', bytearray())
         # 讀取所有可用資料
@@ -294,6 +311,8 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
             receive_packet._buffer = buf
             print("📥 接收封包:", ' '.join(f'0x{b:02X}' for b in packet))
             print("✅ BCC 驗證成功")
+            NOW_SPEED = packet[5]
+            NOW_DIRECTION = packet[7]
             return packet
         # 無完整封包
         return None

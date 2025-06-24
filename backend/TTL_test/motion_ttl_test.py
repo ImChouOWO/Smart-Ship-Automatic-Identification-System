@@ -60,6 +60,7 @@ def send_packet():
 def receive_packet():
     PACKET_LEN = 11
     HEADER_BYTE = 0x1B
+    
     buffer = bytearray()
     if ser.in_waiting:
             buffer += ser.read(ser.in_waiting)
