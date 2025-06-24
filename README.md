@@ -93,6 +93,9 @@ npm  install react@rc react-dom@rc leaflet
 >
 >RM520N-GL/Toolz/ & RM520N-GL/Drivers/ 中有測試用的版本
 
+<details><summary>5G晶片燒入</summary>
+
+
 
 **步驟 1：下載驅動來源碼**
 ```
@@ -146,6 +149,64 @@ sudo nmcli connection up 5g-sim
 ```
 
 
+</details>
+
+<details><summary>opencv cmake</summary>
+
+**步驟 1：安裝必要的依賴套件**
+```
+sudo apt update
+sudo apt install -y build-essential cmake git libgtk2.0-dev pkg-config \
+libavcodec-dev libavformat-dev libswscale-dev libv4l-dev v4l-utils \
+libjpeg-dev libpng-dev libtiff-dev libgstreamer1.0-dev \
+libgstreamer-plugins-base1.0-dev libtbb-dev libatlas-base-dev \
+python3-dev python3-numpy
+```
+**步驟 2：下載 OpenCV source code**
+```
+cd ~
+curl -L https://github.com/opencv/opencv/archive/4.5.5.zip -o opencv.zip
+curl -L https://github.com/opencv/opencv_contrib/archive/4.5.5.zip -o opencv_contrib.zip
+unzip opencv.zip
+unzip opencv_contrib.zip
+```
+**步驟 3：創建cmake所需資料夾與設定檔**
+```
+cd opencv-4.5.5
+mkdir build && cd build
+cmake -D CMAKE_BUILD_TYPE=RELEASE \
+      -D CMAKE_INSTALL_PREFIX=/usr/local \
+      -D WITH_CUDA=ON \
+      -D WITH_CUDNN=ON \
+      -D CUDA_ARCH_BIN="5.3,6.2,7.2" \
+      -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-4.5.5/modules \
+      -D WITH_GSTREAMER=ON \
+      -D WITH_LIBV4L=ON \
+      -D ENABLE_NEON=ON \
+      -D BUILD_opencv_python3=ON \
+      -D BUILD_TESTS=OFF \
+      -D BUILD_EXAMPLES=OFF ..
+
+```
+**步驟 4：編譯並安裝**
+```
+make -j$(nproc)
+sudo make install
+```
+**步驟 5：於終端機中測試是否啟用CUDA**
+```
+python3 - <<'EOF'
+import cv2
+print(cv2.cuda.getCudaEnabledDeviceCount())
+EOF
+
+
+```
+>[!NOTE]
+>回傳不為 `0` 即為成功
+
+
+</details>
    
 
 
