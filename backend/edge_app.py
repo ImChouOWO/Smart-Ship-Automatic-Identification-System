@@ -4,7 +4,7 @@ import time
 import os
 from imu import DueData
 import lidar
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 import multiprocessing
 import serial
 
@@ -59,7 +59,7 @@ def lidar_process_func():
             print(f"❌ LiDAR process error: {e}")
             time.sleep(3)
 
-def imu_process_func():
+def imu_process_func(shared_imu):
     port = IMU
     baud = 9600
     sio = create_resilient_sio("IMU")
@@ -85,7 +85,8 @@ def imu_process_func():
 
             result = DueData(value)
             if result:
-                imu_data = ['%.2f' % result[0], '%.2f' % result[1], '%.2f' % (result[2] - 167)]
+                imu_data = ['%.3f' % result[0], '%.3f' % result[1], '%.3f' % (result[2] - 167)]
+                shared_imu['rpy'] = imu_data
                 try:
                     if sio.connected:
                         sio.emit("get_imu", imu_data)
@@ -121,7 +122,7 @@ def parse_nmea_gpgga(sentence):
                 return None, None, None, None
     return None, None, None, None
 
-def gps_process_func():
+def gps_process_func(shared_gps):
     port = GPS
     baud = 4800
     baud_motion = BAUDRATE
@@ -129,8 +130,7 @@ def gps_process_func():
 
     try:
         ser = serial.Serial(port, baud, timeout=0.5)
-        motion_port = MOTION_SER
-        motion_ser = serial.Serial(port=motion_port, baudrate=baud_motion, timeout=1)
+        
         
         print("✅ GPS Serial Opened:", ser.is_open)
         time.sleep(2)
@@ -153,7 +153,11 @@ def gps_process_func():
                             "longitude": lon,
                             "altitude": alt
                         }
-                        connect_to_motion(lat, lon, motion_ser)
+                        shared_gps['time'] = time_str
+                        shared_gps['latitude'] = lat
+                        shared_gps['longitude'] = lon
+                        shared_gps['altitude'] = alt
+                        
                         try:
                             if sio.connected:
 
@@ -169,32 +173,54 @@ def gps_process_func():
     except Exception as e:
         print(f"❌ GPS Serial connect error: {e}")
         time.sleep(3)
-
+def controller_process_func(shared_imu, shared_gps):
+    motion_port = MOTION_SER
+    power_port = POWER_SER
+    baud = 9600
+    motion_ser = serial.Serial(port=motion_port, baudrate=baud, timeout=1)
+    print("✅ Motion Controller Serial Opened:", motion_ser.is_open)
+    power_ser = serial.Serial(port=power_port, baudrate=baud, timeout=1)
+    print("✅ Power Controller Serial Opened:", power_ser.is_open)
+    while True:
+        try:
+            packet = connect_to_motion(motion_ser, shared_imu, shared_gps)
+            connect_to_power(power_ser, packet)
+        except Exception as e:
+            print(f"❌ Controller process error: {e}")
+            time.sleep(3)
+    
 def calculate_bcc(data):
     bcc = 0
     for byte in data:
         bcc ^= byte
     return bcc
 
-def connect_to_motion(lat, lon, motion_ser):
+def connect_to_motion(motion_ser, shared_imu, shared_gps):
     
     try:
-        
-        print("✅ Motion Controller Serial Opened:", motion_ser.is_open)
-        packet = generate_packet(lat, lon)
-        send_recive_data(packet)
+
+        roll, pitch, yaw = shared_imu.get('rpy', [0.0,0.0,0.0])
+        lat = shared_gps.get('latitude', 0.0)
+        lon = shared_gps.get('longitude', 0.0)
+        packet = generate_packet(lat, lon, roll, pitch, yaw)
+        packet = send_recive_data(packet, motion_ser)
+        if packet is not None:
+            return packet
+        else:
+            print("❌ 無法接收Motion 封包")
+
     except Exception as e:
         print(f"❌ Motion Serial connect error: {e}")
         return
     
-    def generate_packet(lat, lon):
+    def generate_packet(lat, lon, roll, pitch, yaw):
         header = 0x1B
         command = 0x04
         sequence = 0x01
         opcode = 0x01
         separator = 0x7C
-        speed = 0x09
-        direction = 0x02
+        speed = 0x42
+        direction = 0x42
         timestamp = [0x0E, 0x20, 0x11]  # 假設固定時間碼，可換成 RTC
         send_role = 0x01
         receive_role = 0x03
@@ -205,11 +231,22 @@ def connect_to_motion(lat, lon, motion_ser):
 
         lat_bytes = [(lat_raw >> 16) & 0xFF, (lat_raw >> 8) & 0xFF, lat_raw & 0xFF]
         lon_bytes = [(lon_raw >> 16) & 0xFF, (lon_raw >> 8) & 0xFF, lon_raw & 0xFF]
+        
+        roll_raw = int(roll * 1000)
+        pitch_raw = int(pitch * 1000)
+        yaw_raw = int(yaw * 1000)
+        
+        # 將 roll, pitch, yaw 轉成 2 byte（大端序）
+        roll_bytes = [(roll_raw >> 8) & 0xFF, roll_raw & 0xFF]
+        pitch_bytes = [(pitch_raw >> 8) & 0xFF, pitch_raw & 0xFF]
+        yaw_bytes = [(yaw_raw >> 8) & 0xFF, yaw_raw & 0xFF]
+
 
         data = (
             lat_bytes + [separator] +
             lon_bytes + [separator] +
             [speed, separator, direction] +
+            [separator + roll_bytes +separator + pitch_bytes + separator + yaw_bytes] +
             timestamp
         )
 
@@ -223,54 +260,79 @@ def connect_to_motion(lat, lon, motion_ser):
         packet.append(bcc)
         return packet
     
-    def receive_packet():
+    def receive_packet(motion_ser):
+        """
+        讀取並解析來自 motion_ser 的封包，返回完整的封包 (bytes)，
+        並從緩衝區中移除已處理的 bytes。
+        若暫無完整封包，回傳 None。
+        """
         PACKET_LEN = 11
         HEADER_BYTE = 0x1B
-        buffer = bytearray()
+        # 使用函式屬性做持久化緩衝區
+        buf = getattr(receive_packet, '_buffer', bytearray())
+        # 讀取所有可用資料
         if motion_ser.in_waiting:
-                buffer += motion_ser.read(motion_ser.in_waiting)
+            buf += motion_ser.read(motion_ser.in_waiting)
+        # 更新緩衝區
+        receive_packet._buffer = buf
 
-                while len(buffer) >= PACKET_LEN:
-                    # 重新同步：丟掉非 0x1B 開頭的資料
-                    if buffer[0] != HEADER_BYTE:
-                        lost = buffer.pop(0)
-                        # print(f"⚠️ 丟棄錯位資料 0x{lost:02X}")
-                        continue
-
-                    # 嘗試擷取一包
-                    packet = buffer[:PACKET_LEN]
-
-                    # 若 BCC 錯誤，也移動一格繼續尋找正確開頭
-                    data = packet[:-1]
-                    received_bcc = packet[-1]
-                    calculated_bcc = calculate_bcc(data)
-
-                    if received_bcc != calculated_bcc:
-                        print(f"❌ 錯誤封包: BCC 錯誤 (接收 {hex(received_bcc)} ≠ 計算 {hex(calculated_bcc)})")
-                        buffer.pop(0)  # 移除錯位頭，尋找下一個 0x1B
-                        continue
-
-                    # 成功封包處理
-                    print("📥 接收封包:", ' '.join(f'0x{b:02X}' for b in packet))
-                    print("✅ BCC 驗證成功\n")
-
-                    # 移除處理過的封包
-                    buffer = buffer[PACKET_LEN:]
+        # 循環嘗試解析完整封包
+        while len(buf) >= PACKET_LEN:
+            # 對齊到 HEADER
+            if buf[0] != HEADER_BYTE:
+                buf.pop(0)
+                continue
+            # 擷取可能的封包
+            packet = bytes(buf[:PACKET_LEN])
+            data = packet[:-1]
+            received_bcc = packet[-1]
+            if received_bcc != calculate_bcc(data):
+                # BCC 錯誤，移除首位後重試
+                buf.pop(0)
+                continue
+            # 成功解析，移除已處理 bytes
+            del buf[:PACKET_LEN]
+            receive_packet._buffer = buf
+            print("📥 接收封包:", ' '.join(f'0x{b:02X}' for b in packet))
+            print("✅ BCC 驗證成功")
+            return packet
+        # 無完整封包
+        return None
     
     
-    def send_recive_data(packet):
+    def send_recive_data(packet, motion_ser):
         if packet != None:
             motion_ser.write(bytearray(packet))
-            motion_data = receive_packet()
+            packet = receive_packet()
+            
             time.sleep(0.5)
-            return motion_data
+            return packet
+            
             
         else:
             print("No data can send to motion system")
+            return None
    
 
-def connect_to_power():
-    pass
+def connect_to_power(power_ser, packet):
+    if packet is None:
+        print("❌ 無法接收 Motion 封包")
+        return
+    try:
+        if power_ser.is_open:
+            print("✅ Power Serial 已開啟")
+            send_to_power(power_ser, packet)
+    except Exception as e: 
+        print(f"❌ Power Serial 開啟失敗: {e}")
+        return
+    
+    def send_to_power(power_ser, packet):
+        try:
+            power_ser.write(bytearray(packet))
+            print("📤 發送封包到 Power Controller:", ' '.join(f'0x{b:02X}' for b in packet))
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"❌ 發送 Power 封包失敗: {e}")
 
 def ship_controller():
     pass
@@ -333,10 +395,15 @@ def push_video_process_func():
 if __name__ == "__main__":
     try:
         multiprocessing.set_start_method("spawn")
-        imu_proc = Process(target=imu_process_func)
+        manager = Manager()
+        share_imu = manager.dict(rpy=[0.0,0.0,0.0])
+        share_gps = manager.dict(time="", latitude=0.0, longitude=0.0, altitude=0.0)
+        imu_proc = Process(target=imu_process_func, args=(share_imu,))
+        gps_proc = Process(target=gps_process_func, args=(share_gps,))
+        controller_proc = Process(target=controller_process_func, args=(share_imu, share_gps,))
         lidar_proc = Process(target=lidar_process_func)
         video_proc = Process(target=push_video_process_func)
-        gps_proc = Process(target=gps_process_func)
+        
 
         imu_proc.start()
         lidar_proc.start()
