@@ -130,19 +130,19 @@ sudo ./qfirehose -f /tmp/rm_fw
 
 **步驟 5：確認模組已載入並辨識裝置**
 ```
-lsmod | grep -e option -e qmi_wwan
+lsmod | grep -E 'option|qmi_wwan'
 ls /dev/ttyUSB*
 dmesg | grep -i ttyUSB
 ```
 **步驟 6：安裝 ModemManager 與 NetworkManager 並啟動服務**
 ```
 sudo apt install modemmanager network-manager
-sudo systemctl restart ModemManager
+sudo systemctl enable --now ModemManager NetworkManager
 ```
 **步驟 7：建立與啟用 5G 撥號連線（依你的裝置名稱調整 ttyUSBx）**
 ```
-nmcli connection add type gsm ifname ttyUSB2 con-name 5g-sim apn internet
-nmcli connection up 5g-sim
+sudo nmcli connection add type gsm ifname '*' con-name 5g-sim apn internet connection.autoconnect yes
+sudo nmcli connection up 5g-sim
 ```
 
 
