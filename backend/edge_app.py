@@ -220,66 +220,56 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         print(f"❌ Motion Serial connect error: {e}")
         return
     
-    def generate_packet(lat, lon, roll, pitch, yaw):
-        header = 0x1B
-        command = 0x04
-        sequence = 0x01
-        opcode = 0x01
-        separator = 0x7C
-        speed = 0x00    
+def generate_packet(lat, lon, roll, pitch, yaw):
+    header = 0x1B
+    command = 0x04
+    sequence = 0x01
+    opcode = 0x01
+    separator = 0x7C
+    timestamp = [0x0E, 0x20, 0x11]  # 假設固定時間碼，可換成 RTC
+    send_role = 0x01
+    receive_role = 0x03
+
+    # Encode lat/lon to 3 bytes (大端)
+    lat_raw = int(lat * 10000)
+    lon_raw = int(lon * 10000)
+    lat_bytes = [(lat_raw >> 16) & 0xFF, (lat_raw >> 8) & 0xFF, lat_raw & 0xFF]
+    lon_bytes = [(lon_raw >> 16) & 0xFF, (lon_raw >> 8) & 0xFF, lon_raw & 0xFF]
+
+    # Encode IMU (roll, pitch, yaw) to 2 bytes each
+    roll_raw = int(roll * 1000)
+    pitch_raw = int(pitch * 1000)
+    yaw_raw = int(yaw * 1000)
+    roll_bytes = [(roll_raw >> 8) & 0xFF, roll_raw & 0xFF]
+    pitch_bytes = [(pitch_raw >> 8) & 0xFF, pitch_raw & 0xFF]
+    yaw_bytes = [(yaw_raw >> 8) & 0xFF, yaw_raw & 0xFF]
+
+    # FIRST_SEND 判斷速度與方向
+    global FIRST_SEND, NOW_SPEED, NOW_DIRECTION
+    if FIRST_SEND:
+        speed = 0x00
         direction = 0x42
-        timestamp = [0x0E, 0x20, 0x11]  # 假設固定時間碼，可換成 RTC
-        send_role = 0x01
-        receive_role = 0x03
+    else:
+        speed = NOW_SPEED or 0x00
+        direction = NOW_DIRECTION or 0x00
 
-        # 轉換成 0.0001 度單位後轉成 3 byte（大端序）
-        lat_raw = int(lat * 10000)
-        lon_raw = int(lon * 10000)
+    # 正確封包組裝
+    data = (
+        lat_bytes + [separator] +
+        lon_bytes + [separator] +
+        [speed, separator, direction, separator] +
+        roll_bytes + [separator] + pitch_bytes + [separator] + yaw_bytes +
+        timestamp
+    )
 
-        lat_bytes = [(lat_raw >> 16) & 0xFF, (lat_raw >> 8) & 0xFF, lat_raw & 0xFF]
-        lon_bytes = [(lon_raw >> 16) & 0xFF, (lon_raw >> 8) & 0xFF, lon_raw & 0xFF]
-        
-        roll_raw = int(roll * 1000)
-        pitch_raw = int(pitch * 1000)
-        yaw_raw = int(yaw * 1000)
-        
-        # 將 roll, pitch, yaw 轉成 2 byte（大端序）
-        roll_bytes = [(roll_raw >> 8) & 0xFF, roll_raw & 0xFF]
-        pitch_bytes = [(pitch_raw >> 8) & 0xFF, pitch_raw & 0xFF]
-        yaw_bytes = [(yaw_raw >> 8) & 0xFF, yaw_raw & 0xFF]
+    length = len(data)
+    packet = [header, command, sequence, opcode, length] + data + [send_role, receive_role]
+    bcc = calculate_bcc(packet)
+    packet.append(bcc)
+    return packet
 
-        if FIRST_SEND:
-            
-            data = (
-                lat_bytes + [separator] +
-                lon_bytes + [separator] +
-                [speed, separator, direction] +
-                [separator + roll_bytes +separator + pitch_bytes + separator + yaw_bytes] +
-                timestamp
-            )
-
-        else:
-            speed = NOW_SPEED
-            direction = NOW_DIRECTION
-            data = (
-                lat_bytes + [separator] +
-                lon_bytes + [separator] +
-                [speed, separator, direction] +
-                [separator + roll_bytes +separator + pitch_bytes + separator + yaw_bytes] +
-                timestamp
-            )
-
-        length = len(data)
-
-        packet = [
-            header, command, sequence, opcode, length
-        ] + data + [send_role, receive_role]
-
-        bcc = calculate_bcc(packet)
-        packet.append(bcc)
-        return packet
     
-    def receive_packet(motion_ser):
+def receive_packet(motion_ser):
         """
         讀取並解析來自 motion_ser 的封包，返回完整的封包 (bytes)，
         並從緩衝區中移除已處理的 bytes。
@@ -322,7 +312,7 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         return None
     
     
-    def send_recive_data(packet, motion_ser):
+def send_recive_data(packet, motion_ser):
 
         global FIRST_SEND
 
