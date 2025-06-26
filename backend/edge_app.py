@@ -136,7 +136,12 @@ def gps_process_func(shared_gps):
         
         print("✅ GPS Serial Opened:", ser.is_open)
         time.sleep(2)
-
+        last_data = {
+            "time": "",
+            "latitude": 0.0,
+            "longitude": 0.0,
+            "altitude": 0.0
+        }
         while True:
             if not sio.connected:
                 print("🔁 GPS SocketIO lost. Reconnecting...")
@@ -149,22 +154,22 @@ def gps_process_func(shared_gps):
                     time_str, lat, lon, alt = parse_nmea_gpgga(line)
                     if time_str and lat and lon:
                         
-                        data = {
+                        last_data = {
                             "time": time_str,
                             "latitude": lat,
                             "longitude": lon,
                             "altitude": alt
                         }
-                        shared_gps['time'] = time_str
-                        shared_gps['latitude'] = lat
-                        shared_gps['longitude'] = lon
-                        shared_gps['altitude'] = alt
+                        shared_gps['time'] = last_data["time"]
+                        shared_gps['latitude'] = last_data["latitude"]
+                        shared_gps['longitude'] = last_data["longitude"]
+                        shared_gps['altitude'] = last_data["altitude"]
                         
                         try:
                             if sio.connected:
 
-                                sio.emit("get_gps", data)
-                                print(f"📤 Sent GPS data: {data}")
+                                sio.emit("get_gps", last_data)
+                                print(f"📤 Sent GPS data: {last_data}")
                         except Exception as e:
                             print(f"❌ GPS emit error: {e}")
                     else:
@@ -323,7 +328,7 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
 
         if packet != None:
             motion_ser.write(bytearray(packet))
-            packet = receive_packet()
+            packet = receive_packet(motion_ser)
             FIRST_SEND = False
             time.sleep(0.5)
             return packet
