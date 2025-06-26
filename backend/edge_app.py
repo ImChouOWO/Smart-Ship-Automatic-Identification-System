@@ -324,6 +324,7 @@ def send_recive_data(packet, motion_ser):
             motion_ser.write(bytearray(packet))
             packet = receive_packet(motion_ser)
             FIRST_SEND = False
+            print("Send to motion")
             time.sleep(0.5)
             return packet
             
