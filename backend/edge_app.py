@@ -150,7 +150,7 @@ def gps_process_func(shared_gps):
             try:
                 line = ser.readline().decode('ascii', errors='replace').strip()
                 if line:
-                    print(f"📥 NMEA: {line}")
+                    # print(f"📥 NMEA: {line}")
                     time_str, lat, lon, alt = parse_nmea_gpgga(line)
                     if time_str and lat and lon:
                         
@@ -160,20 +160,20 @@ def gps_process_func(shared_gps):
                             "longitude": lon,
                             "altitude": alt
                         }
-                        shared_gps['time'] = last_data["time"]
-                        shared_gps['latitude'] = last_data["latitude"]
-                        shared_gps['longitude'] = last_data["longitude"]
-                        shared_gps['altitude'] = last_data["altitude"]
+                    shared_gps['time'] = last_data["time"]
+                    shared_gps['latitude'] = last_data["latitude"]
+                    shared_gps['longitude'] = last_data["longitude"]
+                    shared_gps['altitude'] = last_data["altitude"]
                         
-                        try:
-                            if sio.connected:
+                    try:
+                        if sio.connected:
 
-                                sio.emit("get_gps", last_data)
-                                # print(f"📤 Sent GPS data: {last_data}")
-                        except Exception as e:
-                            print(f"❌ GPS emit error: {e}")
-                    else:
-                        print("⚠️ GPGGA 無有效座標")
+                            sio.emit("get_gps", last_data)
+                            # print(f"📤 Sent GPS data: {last_data}")
+                    except Exception as e:
+                        print(f"❌ GPS emit error: {e}")
+                    # else:
+                    #     print("⚠️ GPGGA 無有效座標")
             except Exception as e:
                 print(f"❌ GPS parse error: {e}")
                 time.sleep(3)
