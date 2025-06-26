@@ -434,11 +434,13 @@ if __name__ == "__main__":
         lidar_proc.start()
         video_proc.start()
         gps_proc.start()
+        controller_proc.start()
 
         imu_proc.join()
         lidar_proc.join()
         video_proc.join()
         gps_proc.join()
+        controller_proc.join()
 
     except KeyboardInterrupt:
         print("🛑 KeyboardInterrupt. Closing connection...")
