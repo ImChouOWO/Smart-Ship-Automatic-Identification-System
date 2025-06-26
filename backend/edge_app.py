@@ -46,7 +46,7 @@ def lidar_callback(scan_results, sio):
     send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]
     if sio.connected:
         sio.emit("get_lidar", send_data)
-        print(f"📤 Sent {len(send_data)} lidar points")
+        # print(f"📤 Sent {len(send_data)} lidar points")
     else:
         print("⚠️ LiDAR SocketIO disconnected, skipping emit.")
 
@@ -93,7 +93,7 @@ def imu_process_func(shared_imu):
                 try:
                     if sio.connected:
                         sio.emit("get_imu", imu_data)
-                        print(f"📤 Sent IMU data: {imu_data}")
+                        # print(f"📤 Sent IMU data: {imu_data}")
                 except Exception as e:
                     print(f"❌ IMU emit error: {e}")
                     time.sleep(1)
@@ -169,7 +169,7 @@ def gps_process_func(shared_gps):
                             if sio.connected:
 
                                 sio.emit("get_gps", last_data)
-                                print(f"📤 Sent GPS data: {last_data}")
+                                # print(f"📤 Sent GPS data: {last_data}")
                         except Exception as e:
                             print(f"❌ GPS emit error: {e}")
                     else:
