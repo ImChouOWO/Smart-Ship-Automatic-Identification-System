@@ -163,6 +163,8 @@ sudo nmcli connection up 5g-sim
 
 <details><summary>opencv cmake</summary>
 
+
+
 **步驟 1：安裝必要的依賴套件**
 ```
 sudo apt update
@@ -217,7 +219,54 @@ EOF
 
 </details>
    
+<details><summary>設定永久裝置別名</summary>
 
+***步驟 1：查詢當前的USB裝置***
+
+```
+ls /dev/ttyUSB*
+```
+> 視訊類型的USB裝置
+```
+ls /dev/video*
+```
+
+***步驟 2：查詢目標裝置的設備資訊***
+```
+udevadm info -a -n /dev/ttyUSB0
+```
+or
+```
+lsusb
+udevadm info /dev/ttyUSB0
+
+```
+
+```
+ATTRS{idVendor}=="067b"
+ATTRS{idProduct}=="2303"
+ATTRS{serial}=="A601XYZ"
+
+#預計回傳
+```
+
+***步驟 3：建立 `udev` 規則***
+```
+sudo nano /etc/udev/rules.d/99-ttl.rules
+```
+- 貼上以下範本
+```
+SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", ATTRS{serial}=="A601XYZ", SYMLINK+="ttl_motion"
+```
+`代表這條 USB-to-Serial 線材會被指派 /dev/ttl_motion`
+
+***步驟 4：重啟 `udev`***
+```
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+</details>
 
 
 
