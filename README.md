@@ -277,7 +277,7 @@ sudo udevadm trigger
 ### 使用須知
 ---
 
-![workflow](pic/Work Flow.jpg)
+![workflow](pic/img/WorkFlow.jpg)
 
 ---
 
