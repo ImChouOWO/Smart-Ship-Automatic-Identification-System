@@ -333,6 +333,11 @@ sudo systemctl enable ais-app.service
 ```
 sudo systemctl disable ais-app.service
 ```
+### 查看運行狀態
+```
+sudo systemctl status ais-app.service
+
+```
 
 
 </details>
