@@ -275,6 +275,14 @@ sudo udevadm trigger
 ![demo](front/img/AIS.png)
 
 ### 使用須知
+---
+
+![workflow](pic/Work Flow.jpg)
+
+---
+
+
+
 
 
 
