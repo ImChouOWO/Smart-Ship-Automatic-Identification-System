@@ -7,6 +7,12 @@
 ## 簡介 (Introduction)
 **船舶AIS監控系統**是一個實時應用，用於監控和分析船舶數據，包括GPS位置、IMU數據、5G信號強度和即時攝影畫面該應用還集成了動態地圖功能，以可視化顯示船舶的當前位置
 
+
+
+`React.js` `Ubuntu` `Jetson AGX`
+
+`UART` `FFMPEG` `MediaMTX`
+
 ---
 
 ## 相關依賴(Nessary dependencies)
@@ -267,6 +273,69 @@ sudo udevadm trigger
 ```
 
 </details>
+<details><summary>Ubuntu services</summary>
+
+---
+可以透過Ubuntu services實現開機自動啟用程式碼
+---
+
+### 步驟 1 : 創建systemd 服務單元檔案
+
+```
+sudo nano /etc/systemd/system/ais-app.service
+```
+>填寫以下範本
+```
+[Unit]
+Description=AIS Monitoring Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/youruser/path/to/app.py
+WorkingDirectory=/home/youruser/path/to/
+Restart=always
+User=youruser
+
+[Install]
+WantedBy=multi-user.target
+
+```
+> `/home/youruser/path/to/` 改成實際的 `app.py` 路徑
+
+### 步驟 2：重新載入 systemd 並啟用服務
+```
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable ais-app.service
+```
+
+### 手動啟動、關閉與重啟服務
+```
+# 啟動服務
+sudo systemctl start ais-app.service
+
+# 關閉服務
+sudo systemctl stop ais-app.service
+
+# 重啟服務
+sudo systemctl restart ais-app.service
+
+# 查看服務狀態
+sudo systemctl status ais-app.service
+```
+
+### 步驟 3：設定開機自動啟動
+```
+sudo systemctl enable ais-app.service
+```
+> 關閉開機時啟動
+```
+sudo systemctl disable ais-app.service
+```
+
+
+</details>
 
 
 
@@ -274,8 +343,9 @@ sudo udevadm trigger
 
 ![demo](front/img/AIS.png)
 
-### 使用須知
 ---
+
+### 系統流程圖
 
 ![workflow](pic/img/WorkFlow.jpg)
 
