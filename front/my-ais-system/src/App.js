@@ -83,7 +83,19 @@ const App = () => {
       }));
     });
     return () => socket.off('server_gps');
+    
   }, []);
+  
+  useEffect(()=>{
+    socket.on("get_ttl_info",(data) =>{
+      console.log("recive motion power ttl status",data);
+      if (data.motion !== undefined) setMotionStatus(data.motion);
+      if (data.power !== undefined) setPowerStatus(data.power);
+
+
+    });
+    return () => socket.off("get_ttl_info");
+  },[]);
 
   const [videoFrame, setVideoFrame] = useState(null);
   useEffect(() => {

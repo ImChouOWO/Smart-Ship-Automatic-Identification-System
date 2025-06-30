@@ -361,13 +361,13 @@ def connect_to_power(power_ser, packet):
         print(f"❌ Power Serial 開啟失敗: {e}")
         return
     
-    def send_to_power(power_ser, packet):
-        try:
-            power_ser.write(bytearray(packet))
-            print("📤 發送封包到 Power Controller:", ' '.join(f'0x{b:02X}' for b in packet))
-            time.sleep(0.5)
-        except Exception as e:
-            print(f"❌ 發送 Power 封包失敗: {e}")
+def send_to_power(power_ser, packet):
+    try:
+        power_ser.write(bytearray(packet))
+        print("📤 發送封包到 Power Controller:", ' '.join(f'0x{b:02X}' for b in packet))
+        time.sleep(0.5)
+    except Exception as e:
+        print(f"❌ 發送 Power 封包失敗: {e}")
 
 def ship_controller():
     pass
