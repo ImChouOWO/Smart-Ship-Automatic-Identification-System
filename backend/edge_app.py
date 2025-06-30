@@ -21,6 +21,8 @@ BAUDRATE = 9600
 FIRST_SEND = True
 NOW_SPEED =None
 NOW_DIRECTION = None
+MOTION_CONNECT = False
+POWER_CONNECT =False
 
 def create_resilient_sio(name="module"):
     while True:
@@ -188,10 +190,17 @@ def controller_process_func(shared_imu, shared_gps):
     print("✅ Motion Controller Serial Opened:", motion_ser.is_open)
     power_ser = serial.Serial(port=power_port, baudrate=baud, timeout=1)
     print("✅ Power Controller Serial Opened:", power_ser.is_open)
+    sio = create_resilient_sio("motion_power TTL")
+    
+    
+
+    
+
     while True:
         try:
             packet = connect_to_motion(motion_ser, shared_imu, shared_gps)
             connect_to_power(power_ser, packet)
+            sio.emit("get_ttl_info", {"motion": MOTION_CONNECT, "power": POWER_CONNECT})
         except Exception as e:
             print(f"❌ Controller process error: {e}")
             time.sleep(3)
@@ -203,7 +212,7 @@ def calculate_bcc(data):
     return bcc
 
 def connect_to_motion(motion_ser, shared_imu, shared_gps):
-    
+    global MOTION_CONNECT
     try:
 
         rpy = shared_imu.get('rpy', [0.0, 0.0, 0.0])
@@ -216,8 +225,10 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         packet = generate_packet(lat, lon, roll, pitch, yaw)
         packet = send_recive_data(packet, motion_ser)
         if packet is not None:
+            MOTION_CONNECT =True
             return packet
         else:
+            MOTION_CONNECT = False
             print("❌ 無法接收Motion 封包")
 
     except Exception as e:
@@ -335,13 +346,17 @@ def send_recive_data(packet, motion_ser):
    
 
 def connect_to_power(power_ser, packet):
+    global POWER_CONNECT
     if packet is None:
         print("❌ 無法接收 Motion 封包")
         return
     try:
         if power_ser.is_open:
+            POWER_CONNECT = True
             print("✅ Power Serial 已開啟")
             send_to_power(power_ser, packet)
+        else:
+            POWER_CONNECT = False
     except Exception as e: 
         print(f"❌ Power Serial 開啟失敗: {e}")
         return
