@@ -19,8 +19,8 @@ VIDEO_DEVICE = '/dev/video0'
 IMU = '/dev/imu'
 LIDAR = ''
 GPS = "/dev/gps"
-POWER_SER = "/dev/ttyUSB4"
-MOTION_SER = "/dev/ttyUSB5"
+POWER_SER = "/dev/power_ttl"
+MOTION_SER = "/dev/motion_ttl"
 BAUDRATE = 9600
 
 
