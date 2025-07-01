@@ -7,6 +7,7 @@ import lidar
 from multiprocessing import Process, Manager
 import multiprocessing
 import serial
+from datetime import datetime
 
 SERVER_URL = 'http://140.133.74.176:5000'
 
@@ -258,7 +259,10 @@ def generate_packet(lat, lon, roll, pitch, yaw):
     sequence = 0x01
     opcode = 0x01
     separator = 0x7C
-    timestamp = [0x0E, 0x20, 0x11]  # 假設固定時間碼，可換成 RTC
+    # 系統時間轉為 [hour, minute, second]
+    now = datetime.now()
+    timestamp = [now.hour & 0xFF, now.minute & 0xFF, now.second & 0xFF]
+    
     send_role = 0x01
     receive_role = 0x03
 
