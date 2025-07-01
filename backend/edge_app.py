@@ -8,9 +8,12 @@ from multiprocessing import Process, Manager
 import multiprocessing
 import serial
 
-
 SERVER_URL = 'http://140.133.74.176:5000'
+
+#Streaming URL
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
+
+#TTL Port and Baudrate
 VIDEO_DEVICE = '/dev/video0'
 IMU = '/dev/imu'
 LIDAR = ''
@@ -18,11 +21,21 @@ GPS = "/dev/gps"
 POWER_SER = "/dev/ttyUSB4"
 MOTION_SER = "/dev/ttyUSB5"
 BAUDRATE = 9600
+
+
+
+#check motion and power sockectio connect
+#It will rerender system status on front
+MOTION_CONNECT = False
+POWER_CONNECT =False
+
+#initial packet
 FIRST_SEND = True
 NOW_SPEED =None
 NOW_DIRECTION = None
-MOTION_CONNECT = False
-POWER_CONNECT =False
+
+#Sending it to power system when it not none  
+POWER_PACKET =None
 
 def create_resilient_sio(name="module"):
     while True:
@@ -183,6 +196,7 @@ def gps_process_func(shared_gps):
         print(f"❌ GPS Serial connect error: {e}")
         time.sleep(3)
 def controller_process_func(shared_imu, shared_gps):
+    global POWER_PACKET
     motion_port = MOTION_SER
     power_port = POWER_SER
     baud = BAUDRATE
@@ -198,9 +212,11 @@ def controller_process_func(shared_imu, shared_gps):
 
     while True:
         try:
-            packet = connect_to_motion(motion_ser, shared_imu, shared_gps)
-            connect_to_power(power_ser, packet)
+            POWER_PACKET = connect_to_motion(motion_ser, shared_imu, shared_gps)
+            if POWER_PACKET is not None:
+                connect_to_power(power_ser, POWER_PACKET)
             sio.emit("get_ttl_info", {"motion": MOTION_CONNECT, "power": POWER_CONNECT})
+            time.sleep(0.5)
         except Exception as e:
             print(f"❌ Controller process error: {e}")
             time.sleep(3)
@@ -230,10 +246,11 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         else:
             MOTION_CONNECT = False
             print("❌ 無法接收Motion 封包")
+            return None
 
     except Exception as e:
         print(f"❌ Motion Serial connect error: {e}")
-        return
+        return None
     
 def generate_packet(lat, lon, roll, pitch, yaw):
     header = 0x1B
@@ -336,7 +353,6 @@ def send_recive_data(packet, motion_ser):
             packet = receive_packet(motion_ser)
             FIRST_SEND = False
             print("Send to motion")
-            time.sleep(0.5)
             return packet
             
             
@@ -365,7 +381,6 @@ def send_to_power(power_ser, packet):
     try:
         power_ser.write(bytearray(packet))
         print("📤 發送封包到 Power Controller:", ' '.join(f'0x{b:02X}' for b in packet))
-        time.sleep(0.5)
     except Exception as e:
         print(f"❌ 發送 Power 封包失敗: {e}")
 
