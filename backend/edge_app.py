@@ -86,7 +86,7 @@ def imu_process_func(shared_imu):
     try:
         ser = serial.Serial(port, baud, timeout=0.5)
         print("✅ IMU Serial Opened:", ser.is_open)
-        time.sleep(1)
+        time.sleep(0.5)
 
         while True:
             if not sio.connected:
@@ -151,7 +151,7 @@ def gps_process_func(shared_gps):
         
         
         print("✅ GPS Serial Opened:", ser.is_open)
-        time.sleep(2)
+        time.sleep(0.5)
         last_data = {
             "time": "",
             "latitude": 0.0,
@@ -192,10 +192,10 @@ def gps_process_func(shared_gps):
                     #     print("⚠️ GPGGA 無有效座標")
             except Exception as e:
                 print(f"❌ GPS parse error: {e}")
-                time.sleep(3)
+                time.sleep(0.5)
     except Exception as e:
         print(f"❌ GPS Serial connect error: {e}")
-        time.sleep(3)
+        time.sleep(0.5)
 def controller_process_func(shared_imu, shared_gps):
     global POWER_PACKET
     motion_port = MOTION_SER
