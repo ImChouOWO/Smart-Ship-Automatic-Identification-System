@@ -241,6 +241,7 @@ def controller_process_func(shared_imu, shared_gps):
 
         if power_ser is not None and motion_ser is not None :
             if power_ser.is_open and motion_ser.is_open:
+                print("✅ Both Motion and Power Serial are open")
                 break
 
         time.sleep(1)
