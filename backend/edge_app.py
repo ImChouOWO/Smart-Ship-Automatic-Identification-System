@@ -82,10 +82,20 @@ def imu_process_func(shared_imu):
     port = IMU
     baud = 9600
     sio = create_resilient_sio("IMU")
+    ser = None
+    while True:
+        try:
+            ser = serial.Serial(port, baud, timeout=0.5)
+            print("✅ IMU Serial Opened:", ser.is_open)
+        except:
+            print("IMU Serial Opened Fail")
+
+        if ser.is_open:
+            break
+        time.sleep(1)            
 
     try:
-        ser = serial.Serial(port, baud, timeout=0.5)
-        print("✅ IMU Serial Opened:", ser.is_open)
+        
         time.sleep(0.5)
 
         while True:
@@ -145,12 +155,21 @@ def gps_process_func(shared_gps):
     port = GPS
     baud = 4800
     sio = create_resilient_sio("GPS")
+    ser = None
+    while True:
+        try:
+            ser = serial.Serial(port, baud, timeout=0.5)
+            print("✅ GPS Serial Opened:", ser.is_open)
+        
+        except:
+            print("GPS Serial Opened Fail")
+        
+        if ser.is_open:
+            break
+        time.sleep(1)
 
     try:
-        ser = serial.Serial(port, baud, timeout=0.5)
-        
-        
-        print("✅ GPS Serial Opened:", ser.is_open)
+       
         time.sleep(0.5)
         last_data = {
             "time": "",
@@ -201,10 +220,27 @@ def controller_process_func(shared_imu, shared_gps):
     motion_port = MOTION_SER
     power_port = POWER_SER
     baud = BAUDRATE
-    motion_ser = serial.Serial(port=motion_port, baudrate=baud, timeout=1)
-    print("✅ Motion Controller Serial Opened:", motion_ser.is_open)
-    power_ser = serial.Serial(port=power_port, baudrate=baud, timeout=1)
-    print("✅ Power Controller Serial Opened:", power_ser.is_open)
+    motion_ser =None
+    power_ser = None
+    while True:
+        try:
+            motion_ser = serial.Serial(port=motion_port, baudrate=baud, timeout=1)
+            print("✅ Motion Controller Serial Opened:", motion_ser.is_open)
+        except:
+            print("Open Motion Serial Fail")
+
+        try:
+            power_ser = serial.Serial(port=power_port, baudrate=baud, timeout=1)
+            print("✅ Power Controller Serial Opened:", power_ser.is_open)
+        except:
+            
+            print("Open Power Serial Fail")
+
+        if motion_ser.is_open and power_ser.is_open:
+            break
+
+        time.sleep(1)
+
     sio = create_resilient_sio("motion_power TTL")
     
     
