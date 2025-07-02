@@ -3,7 +3,7 @@ import time
 import threading
 
 # 串列埠設定（請依你的實際設備修改）
-ser = serial.Serial(port='/dev/ttyUSB4', baudrate=9600)  # ← 修改為你的 COM port
+ser = serial.Serial(port='/dev/motion_ttl', baudrate=9600)  # ← 修改為你的 COM port
 
 # 計算 packet 的 BCC
 def calculate_bcc(data):
