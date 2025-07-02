@@ -39,24 +39,24 @@ NOW_DIRECTION = None
 POWER_PACKET =None
 
 def create_resilient_sio(name="module"):
-    while True:
-        try:
-            print(f"🔌 [{name}] Connecting to SocketIO server...")
-            sio = socketio.Client(reconnection=True, reconnection_attempts=5, reconnection_delay=3)
+    
+    try:
+        print(f"🔌 [{name}] Connecting to SocketIO server...")
+        sio = socketio.Client(reconnection=True, reconnection_attempts=5, reconnection_delay=3)
 
-            @sio.event
-            def connect():
+        @sio.event
+        def connect():
                 print(f"✅ [{name}] SocketIO Connected")
 
-            @sio.event
-            def disconnect():
+        @sio.event
+        def disconnect():
                 print(f"❌ [{name}] SocketIO Disconnected")
 
-            sio.connect(SERVER_URL)
-            return sio
-        except Exception as e:
-            print(f"❌ [{name}] SocketIO connection failed: {e}")
-            time.sleep(3)
+        sio.connect(SERVER_URL)
+        return sio
+    except Exception as e:
+        print(f"❌ [{name}] SocketIO connection failed: {e}")
+        time.sleep(3)
 
 def lidar_callback(scan_results, sio):
     send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]
@@ -263,7 +263,7 @@ def controller_process_func(shared_imu, shared_gps):
             print("POWER_PACKET:", POWER_PACKET)
             if POWER_PACKET is not None:
                 connect_to_power(power_ser, POWER_PACKET)
-                
+
             if sio is None or not sio.connected:
                 sio = create_resilient_sio("motion_power TTL")
                 continue  # 不要送封包
