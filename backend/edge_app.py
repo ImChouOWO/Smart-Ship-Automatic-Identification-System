@@ -8,6 +8,8 @@ from multiprocessing import Process, Manager
 import multiprocessing
 import serial
 from datetime import datetime
+import threading
+
 
 SERVER_URL = 'http://140.133.74.176:5000'
 
@@ -38,25 +40,52 @@ NOW_DIRECTION = None
 #Sending it to power system when it not none  
 POWER_PACKET =None
 
+
+
+def sio_connecter(sio, timeout=1.5):
+    result = {"success": False}
+
+    def connect_thread():
+        try:
+            sio.connect(SERVER_URL)
+            result["success"] = True
+        except Exception as e:
+            print(f"❌ SocketIO connect exception: {e}")
+
+    t = threading.Thread(target=connect_thread)
+    t.start()
+    t.join(timeout)
+
+    if t.is_alive():
+        print("❌ SocketIO connect timeout.")
+        return None
+
+    return sio if result["success"] else None
+
 def create_resilient_sio(name="module"):
-    
-    try:
-        print(f"🔌 [{name}] Connecting to SocketIO server...")
-        sio = socketio.Client(reconnection=True, reconnection_attempts=1, reconnection_delay=0.1)
+    print(f"🔌 [{name}] Connecting to SocketIO server...")
+    sio = socketio.Client(
+        reconnection=True,
+        reconnection_attempts=1,
+        reconnection_delay=0.1
+    )
 
-        @sio.event
-        def connect():
-                print(f"✅ [{name}] SocketIO Connected")
+    @sio.event
+    def connect():
+        print(f"✅ [{name}] SocketIO Connected")
 
-        @sio.event
-        def disconnect():
-                print(f"❌ [{name}] SocketIO Disconnected")
+    @sio.event
+    def disconnect():
+        print(f"❌ [{name}] SocketIO Disconnected")
 
-        sio.connect(SERVER_URL)
-        return sio
-    except Exception as e:
-        print(f"❌ [{name}] SocketIO connection failed: {e}")
-        time.sleep(0.001)
+    sio = sio_connecter(sio, timeout=1.5)
+
+    if sio is None or not sio.connected:
+        print(f"⚠️ [{name}] SocketIO connection failed or not connected")
+        return None
+
+    return sio
+
 
 def lidar_callback(scan_results, sio):
     send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]
