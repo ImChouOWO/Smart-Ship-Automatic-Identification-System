@@ -88,10 +88,11 @@ def imu_process_func(shared_imu):
             ser = serial.Serial(port, baud, timeout=0.5)
             print("✅ IMU Serial Opened:", ser.is_open)
         except:
+            ser = None
             print("IMU Serial Opened Fail")
-
-        if ser.is_open:
-            break
+        if ser is not None:
+            if ser.is_open:
+                break
         time.sleep(1)            
 
     try:
@@ -162,10 +163,11 @@ def gps_process_func(shared_gps):
             print("✅ GPS Serial Opened:", ser.is_open)
         
         except:
+            ser = None
             print("GPS Serial Opened Fail")
-        
-        if ser.is_open:
-            break
+        if ser is not None:
+            if ser.is_open:
+                break
         time.sleep(1)
 
     try:
@@ -227,17 +229,19 @@ def controller_process_func(shared_imu, shared_gps):
             motion_ser = serial.Serial(port=motion_port, baudrate=baud, timeout=1)
             print("✅ Motion Controller Serial Opened:", motion_ser.is_open)
         except:
+            motion_ser =None
             print("Open Motion Serial Fail")
 
         try:
             power_ser = serial.Serial(port=power_port, baudrate=baud, timeout=1)
             print("✅ Power Controller Serial Opened:", power_ser.is_open)
         except:
-            
+            power_ser = None
             print("Open Power Serial Fail")
 
-        if motion_ser.is_open and power_ser.is_open:
-            break
+        if power_ser is not None and motion_ser is not None :
+            if power_ser.is_open and motion_ser.is_open:
+                break
 
         time.sleep(1)
 
