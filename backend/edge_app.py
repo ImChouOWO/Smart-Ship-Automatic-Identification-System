@@ -76,7 +76,7 @@ def lidar_process_func():
             lidar.start_lidar_scan(callback=lambda data: lidar_callback(data, sio))
         except Exception as e:
             print(f"❌ LiDAR process error: {e}")
-            time.sleep(1)
+            time.sleep(0.01)
 
 def imu_process_func(shared_imu):
     port = IMU
@@ -97,7 +97,7 @@ def imu_process_func(shared_imu):
 
     try:
         
-        time.sleep(0.5)
+        time.sleep(0.01)
 
         while True:
             
@@ -129,7 +129,7 @@ def imu_process_func(shared_imu):
 
     except Exception as e:
         print(f"❌ IMU process fatal error: {e}")
-        time.sleep(3)
+        time.sleep(0.1)
 
 def parse_nmea_gpgga(sentence):
     if sentence.startswith('$GPGGA'):
@@ -174,7 +174,7 @@ def gps_process_func(shared_gps):
 
     try:
        
-        time.sleep(0.5)
+        time.sleep(0.01)
         last_data = {
             "time": "",
             "latitude": 0.0,
@@ -216,10 +216,10 @@ def gps_process_func(shared_gps):
                     #     print("⚠️ GPGGA 無有效座標")
             except Exception as e:
                 print(f"❌ GPS parse error: {e}")
-                time.sleep(0.5)
+                time.sleep(0.01)
     except Exception as e:
         print(f"❌ GPS Serial connect error: {e}")
-        time.sleep(0.5)
+        time.sleep(0.01)
 def controller_process_func(shared_imu, shared_gps):
     global POWER_PACKET
     motion_port = MOTION_SER
