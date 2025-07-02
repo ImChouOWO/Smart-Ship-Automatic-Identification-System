@@ -1,4 +1,4 @@
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\]/ === 模式開關 ===
+// === 模式開關 ===
 bool use_simulation = false;  // true 為模擬模式，false 為實際 GPS/IMU 封包
 
 // === 模擬資料 ===
@@ -47,8 +47,7 @@ float bearing(float lat1, float lon1, float lat2, float lon2) {
   float x = cos(radians(lat1)) * sin(radians(lat2)) -
             sin(radians(lat1)) * cos(radians(lat2)) * cos(dLon);
   float brng = atan2(y, x);
-  return fmod(degrees(brng) + 360.0, 360.0)
-  \
+  return fmod(degrees(brng) + 360.0, 360.0);
 }
 
 // === XOR 計算 BCC ===
@@ -77,7 +76,7 @@ void send_packet(int speed, int direction) {
 }
 
 // === 導航邏輯 ===
-void compute_and_send(float lat, float lon, float ) {
+void compute_and_send(float lat, float lon, float heading) {
   float target_lat = target_lat_list[current_target_index];
   float target_lon = target_lon_list[current_target_index];
 
