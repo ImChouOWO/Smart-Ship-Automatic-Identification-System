@@ -60,6 +60,7 @@ byte calculate_bcc(byte *data, int len) {
 }
 
 // === 傳送導航封包 ===
+// === 傳送導航封包（附帶 Hex 顯示）===
 void send_packet(int speed, int direction) {
   byte packet[] = {
     0x1B, 0x04, 0x01, 0x01, 0x03,
@@ -67,13 +68,29 @@ void send_packet(int speed, int direction) {
     0x01, 0x03
   };
   byte bcc = calculate_bcc(packet, sizeof(packet));
+
+  // 實際送出封包
   for (int i = 0; i < sizeof(packet); i++) {
     Serial.write(packet[i]);
   }
   Serial.write(bcc);
   Serial.flush();
-  Serial.println("\nSent navigation packet");
+
+  // 顯示封包內容（Hex）
+  Serial.print("Sent Packet: ");
+  for (int i = 0; i < sizeof(packet); i++) {
+    Serial.print("0x");
+    if (packet[i] < 0x10) Serial.print("0");
+    Serial.print(packet[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.print("BCC: 0x");
+  if (bcc < 0x10) Serial.print("0");
+  Serial.println(bcc, HEX);
+
+  Serial.println("Sent navigation packet");
 }
+
 
 // === 導航邏輯 ===
 void compute_and_send(float lat, float lon, float heading) {
@@ -196,5 +213,5 @@ void loop() {
     parse_real_packet();
   }
 
-  delay(200);
+  delay(400);
 }
