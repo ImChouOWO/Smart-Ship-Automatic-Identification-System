@@ -42,7 +42,7 @@ def create_resilient_sio(name="module"):
     
     try:
         print(f"🔌 [{name}] Connecting to SocketIO server...")
-        sio = socketio.Client(reconnection=True, reconnection_attempts=5, reconnection_delay=3)
+        sio = socketio.Client(reconnection=True, reconnection_attempts=1, reconnection_delay=0.01)
 
         @sio.event
         def connect():
@@ -450,7 +450,7 @@ def push_video_process_func():
     while True:
         if not os.path.exists(VIDEO_DEVICE):
             print(f"⚠️ Video device {VIDEO_DEVICE} not found. Retrying...")
-            time.sleep(5)
+            time.sleep(0.01)
             retry_count += 1
             if retry_count % 6 == 0:
                 print(f"🔁 Retried {retry_count} times. Still waiting for video input...")
