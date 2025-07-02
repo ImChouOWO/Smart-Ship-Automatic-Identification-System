@@ -100,10 +100,7 @@ def imu_process_func(shared_imu):
         time.sleep(0.5)
 
         while True:
-            if sio is None or not sio.connected:
-                print("🔁 IMU SocketIO lost. Reconnecting...")
-                sio = create_resilient_sio("IMU")
-                continue
+            
 
             RXdata = ser.read(1)
             if not RXdata:
@@ -119,6 +116,10 @@ def imu_process_func(shared_imu):
                 imu_data = ['%.3f' % result[0], '%.3f' % result[1], '%.3f' % (result[2] - 167)]
                 shared_imu['rpy'] = imu_data
                 try:
+                    if sio is None or not sio.connected:
+                        print("🔁 IMU SocketIO lost. Reconnecting...")
+                        sio = create_resilient_sio("IMU")
+                        continue
                     if sio.connected:
                         sio.emit("get_imu", imu_data)
                         # print(f"📤 Sent IMU data: {imu_data}")
@@ -181,9 +182,7 @@ def gps_process_func(shared_gps):
             "altitude": 0.0
         }
         while True:
-            if sio is None or not sio.connected:
-                print("🔁 GPS SocketIO lost. Reconnecting...")
-                sio = create_resilient_sio("GPS")
+            
 
             try:
                 line = ser.readline().decode('ascii', errors='replace').strip()
@@ -204,8 +203,11 @@ def gps_process_func(shared_gps):
                     shared_gps['altitude'] = last_data["altitude"]
                         
                     try:
+                        if sio is None or not sio.connected:
+                            print("🔁 GPS SocketIO lost. Reconnecting...")
+                            sio = create_resilient_sio("GPS")
+                            continue
                         if sio.connected:
-
                             sio.emit("get_gps", last_data)
                             # print(f"📤 Sent GPS data: {last_data}")
                     except Exception as e:
@@ -260,8 +262,8 @@ def controller_process_func(shared_imu, shared_gps):
             POWER_PACKET = connect_to_motion(motion_ser, shared_imu, shared_gps)
             print("POWER_PACKET:", POWER_PACKET)
             if POWER_PACKET is not None:
-
                 connect_to_power(power_ser, POWER_PACKET)
+                
             if sio is None or not sio.connected:
                 sio = create_resilient_sio("motion_power TTL")
                 continue  # 不要送封包
