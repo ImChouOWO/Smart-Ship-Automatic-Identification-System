@@ -196,5 +196,5 @@ void loop() {
     parse_real_packet();
   }
 
-  delay(500);
+  delay(200);
 }

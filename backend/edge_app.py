@@ -76,7 +76,7 @@ def lidar_process_func():
             lidar.start_lidar_scan(callback=lambda data: lidar_callback(data, sio))
         except Exception as e:
             print(f"❌ LiDAR process error: {e}")
-            time.sleep(3)
+            time.sleep(1)
 
 def imu_process_func(shared_imu):
     port = IMU
@@ -230,14 +230,14 @@ def controller_process_func(shared_imu, shared_gps):
     sio = None
     while True:
         try:
-            motion_ser = serial.Serial(port=motion_port, baudrate=baud, timeout=1)
+            motion_ser = serial.Serial(port=motion_port, baudrate=baud, timeout=0.001)
             print("✅ Motion Controller Serial Opened:", motion_ser.is_open)
         except:
             motion_ser =None
             print("Open Motion Serial Fail")
 
         try:
-            power_ser = serial.Serial(port=power_port, baudrate=baud, timeout=1)
+            power_ser = serial.Serial(port=power_port, baudrate=baud, timeout=0.001)
             print("✅ Power Controller Serial Opened:", power_ser.is_open)
         except:
             power_ser = None
@@ -271,7 +271,7 @@ def controller_process_func(shared_imu, shared_gps):
             time.sleep(0.5)
         except Exception as e:
             print(f"❌ Controller process error: {e}")
-            time.sleep(3)
+            time.sleep(0.001)
     
 def calculate_bcc(data):
     bcc = 0
