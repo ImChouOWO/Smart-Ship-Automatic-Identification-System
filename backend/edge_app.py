@@ -39,7 +39,7 @@ NOW_DIRECTION = None
 
 #Sending it to power system when it not none  
 POWER_PACKET =None
-
+LAST_VALID_PACKET = None
 
 
 def sio_connecter(sio, timeout=0.5):
@@ -78,7 +78,7 @@ def create_resilient_sio(name="module"):
     def disconnect():
         print(f"❌ [{name}] SocketIO Disconnected")
 
-    sio = sio_connecter(sio, timeout=1.5)
+    sio = sio_connecter(sio, timeout=0.1)
 
     if sio is None or not sio.connected:
         print(f"⚠️ [{name}] SocketIO connection failed or not connected")
@@ -250,7 +250,7 @@ def gps_process_func(shared_gps):
         print(f"❌ GPS Serial connect error: {e}")
         time.sleep(0.01)
 def controller_process_func(shared_imu, shared_gps):
-    global POWER_PACKET
+    global POWER_PACKET, LAST_VALID_PACKET
     motion_port = MOTION_SER
     power_port = POWER_SER
     baud = BAUDRATE
@@ -292,7 +292,10 @@ def controller_process_func(shared_imu, shared_gps):
             print("POWER_PACKET:", POWER_PACKET)
             if POWER_PACKET is not None:
                 connect_to_power(power_ser, POWER_PACKET)
-
+                LAST_VALID_PACKET = POWER_PACKET
+            else:
+                connect_to_power(power_ser, LAST_VALID_PACKET)
+                
             if sio is None or not sio.connected:
                 sio = create_resilient_sio("motion_power TTL")
                 continue  # 不要送封包
