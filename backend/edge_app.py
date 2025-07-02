@@ -295,12 +295,13 @@ def controller_process_func(shared_imu, shared_gps):
                 LAST_VALID_PACKET = POWER_PACKET
             else:
                 connect_to_power(power_ser, LAST_VALID_PACKET)
-
+            time.sleep(0.5)
+            
             if sio is None or not sio.connected:
                 sio = create_resilient_sio("motion_power TTL")
                 continue  # 不要送封包
             sio.emit("get_ttl_info", {"motion": MOTION_CONNECT, "power": POWER_CONNECT})
-            time.sleep(0.5)
+            
         except Exception as e:
             print(f"❌ Controller process error: {e}")
             time.sleep(0.5)
