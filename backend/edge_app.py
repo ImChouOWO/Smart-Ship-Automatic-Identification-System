@@ -81,7 +81,7 @@ def lidar_process_func():
 def imu_process_func(shared_imu):
     port = IMU
     baud = 9600
-    sio = create_resilient_sio("IMU")
+    sio =None
     ser = None
     while True:
         try:
@@ -100,9 +100,10 @@ def imu_process_func(shared_imu):
         time.sleep(0.5)
 
         while True:
-            if not sio.connected:
+            if sio is None or not sio.connected:
                 print("🔁 IMU SocketIO lost. Reconnecting...")
                 sio = create_resilient_sio("IMU")
+                continue
 
             RXdata = ser.read(1)
             if not RXdata:
@@ -155,7 +156,7 @@ def parse_nmea_gpgga(sentence):
 def gps_process_func(shared_gps):
     port = GPS
     baud = 4800
-    sio = create_resilient_sio("GPS")
+    sio = None
     ser = None
     while True:
         try:
@@ -180,7 +181,7 @@ def gps_process_func(shared_gps):
             "altitude": 0.0
         }
         while True:
-            if not sio.connected:
+            if sio is None or not sio.connected:
                 print("🔁 GPS SocketIO lost. Reconnecting...")
                 sio = create_resilient_sio("GPS")
 
@@ -224,6 +225,7 @@ def controller_process_func(shared_imu, shared_gps):
     baud = BAUDRATE
     motion_ser =None
     power_ser = None
+    sio = None
     while True:
         try:
             motion_ser = serial.Serial(port=motion_port, baudrate=baud, timeout=1)
@@ -246,7 +248,7 @@ def controller_process_func(shared_imu, shared_gps):
 
         time.sleep(1)
 
-    #sio = create_resilient_sio("motion_power TTL")
+   
     
     
 
@@ -254,12 +256,16 @@ def controller_process_func(shared_imu, shared_gps):
 
     while True:
         try:
+
             POWER_PACKET = connect_to_motion(motion_ser, shared_imu, shared_gps)
             print("POWER_PACKET:", POWER_PACKET)
             if POWER_PACKET is not None:
 
                 connect_to_power(power_ser, POWER_PACKET)
-            #sio.emit("get_ttl_info", {"motion": MOTION_CONNECT, "power": POWER_CONNECT})
+            if sio is None or not sio.connected:
+                sio = create_resilient_sio("motion_power TTL")
+                continue  # 不要送封包
+            sio.emit("get_ttl_info", {"motion": MOTION_CONNECT, "power": POWER_CONNECT})
             time.sleep(0.5)
         except Exception as e:
             print(f"❌ Controller process error: {e}")
