@@ -42,7 +42,7 @@ def create_resilient_sio(name="module"):
     
     try:
         print(f"🔌 [{name}] Connecting to SocketIO server...")
-        sio = socketio.Client(reconnection=True, reconnection_attempts=1, reconnection_delay=0.01)
+        sio = socketio.Client(reconnection=True, reconnection_attempts=1, reconnection_delay=0.1)
 
         @sio.event
         def connect():
