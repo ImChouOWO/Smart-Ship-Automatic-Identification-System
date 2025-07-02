@@ -42,7 +42,7 @@ POWER_PACKET =None
 
 
 
-def sio_connecter(sio, timeout=1.5):
+def sio_connecter(sio, timeout=0.5):
     result = {"success": False}
 
     def connect_thread():
