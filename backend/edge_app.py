@@ -255,7 +255,9 @@ def controller_process_func(shared_imu, shared_gps):
     while True:
         try:
             POWER_PACKET = connect_to_motion(motion_ser, shared_imu, shared_gps)
+            print("POWER_PACKET:", POWER_PACKET)
             if POWER_PACKET is not None:
+
                 connect_to_power(power_ser, POWER_PACKET)
             sio.emit("get_ttl_info", {"motion": MOTION_CONNECT, "power": POWER_CONNECT})
             time.sleep(0.5)
