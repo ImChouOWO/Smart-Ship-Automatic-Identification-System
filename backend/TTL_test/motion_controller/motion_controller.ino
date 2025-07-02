@@ -105,7 +105,7 @@ void compute_and_send(float lat, float lon, float heading) {
   Serial.print("Target "); Serial.println(current_target_index + 1);
   Serial.print("Lat: "); Serial.print(lat, 6); Serial.print(" | Lon: "); Serial.println(lon, 6);
   Serial.print("Dist: "); Serial.print(dist); Serial.print(" m | Bearing: "); Serial.println(brng);
-  Serial.print("Offset: "); Serial.print(offset); Serial.print(" | Heading: "); Serial.println(heading);
+  Serial.print("Offset: "); Serial.print(offset); Serial.print(" | Now Heading(Yaw): "); Serial.println(heading);
   Serial.print("Speed: "); Serial.print(speed); Serial.print(" | Dir: "); Serial.println(direction);
 
   send_packet(speed, direction);
