@@ -56,7 +56,7 @@ def create_resilient_sio(name="module"):
         return sio
     except Exception as e:
         print(f"❌ [{name}] SocketIO connection failed: {e}")
-        time.sleep(3)
+        time.sleep(0.001)
 
 def lidar_callback(scan_results, sio):
     send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]
