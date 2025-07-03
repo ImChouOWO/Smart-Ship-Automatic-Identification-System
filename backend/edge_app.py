@@ -63,11 +63,12 @@ def sio_connecter(sio, timeout=0.5):
     return sio if result["success"] else None
 
 def create_resilient_sio(name="module"):
-    print(f"🔌 [{name}] Connecting to SocketIO server...")
+    # print(f"🔌 [{name}] Connecting to SocketIO server...")
     sio = socketio.Client(
         reconnection=True,
-        reconnection_attempts=5,
-        reconnection_delay=1
+        reconnection_attempts=0,
+        reconnection_delay=0.5,
+        reconnection_delay_max=2
     )
 
     @sio.event
