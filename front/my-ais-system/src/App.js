@@ -10,7 +10,7 @@ import {
   Fab
 } from '@mui/material';
 import Ship from './page/ship';
-import { io } from "socket.io-client";
+import { socket } from './socket';
 
 // 修復 Leaflet 的 icon 問題
 delete L.Icon.Default.prototype._getIconUrl;
@@ -32,7 +32,6 @@ const MapUpdater = ({ position }) => {
 };
 
 const App = () => {
-  const socket = io('http://140.133.74.176:5000');
   const [motionStatus, setMotionStatus] = useState(false);
   const [powerStatus, setPowerStatus] = useState(false);
   const [shipData, setShipData] = useState({
