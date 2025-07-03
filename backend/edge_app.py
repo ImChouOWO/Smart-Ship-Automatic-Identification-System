@@ -91,7 +91,7 @@ def create_resilient_sio(name="module"):
 def lidar_callback(scan_results, sio):
     send_data = [{"angle": round(a, 2), "dist": round(d, 2), "q": q} for a, d, q in scan_results[:100]]
     if sio.connected:
-        sio.emit("get_lidar", send_data)
+        sio.emit("get_lidar", send_data, callback=None)
         # print(f"📤 Sent {len(send_data)} lidar points")
     else:
         print("⚠️ LiDAR SocketIO disconnected, skipping emit.")
@@ -151,7 +151,7 @@ def imu_process_func(shared_imu):
                         sio = create_resilient_sio("IMU")
                         continue
                     if sio.connected:
-                        sio.emit("get_imu", imu_data)
+                        sio.emit("get_imu", imu_data, callback=None)
                         # print(f"📤 Sent IMU data: {imu_data}")
                 except Exception as e:
                     print(f"❌ IMU emit error: {e}")
@@ -238,7 +238,7 @@ def gps_process_func(shared_gps):
                             sio = create_resilient_sio("GPS")
                             continue
                         if sio.connected:
-                            sio.emit("get_gps", last_data)
+                            sio.emit("get_gps", last_data, callback=None)
                             # print(f"📤 Sent GPS data: {last_data}")
                     except Exception as e:
                         print(f"❌ GPS emit error: {e}")
@@ -301,7 +301,7 @@ def controller_process_func(shared_imu, shared_gps):
             if sio is None or not sio.connected:
                 sio = create_resilient_sio("motion_power TTL")
                 continue  # 不要送封包
-            sio.emit("get_ttl_info", {"motion": MOTION_CONNECT, "power": POWER_CONNECT})
+            sio.emit("get_ttl_info", {"motion": MOTION_CONNECT, "power": POWER_CONNECT}, callback=None)
             
         except Exception as e:
             print(f"❌ Controller process error: {e}")
@@ -453,7 +453,7 @@ def send_recive_data(packet, motion_ser):
 def connect_to_power(power_ser, packet):
     global POWER_CONNECT
     if packet is None:
-        print("❌ 無法接收 Motion 封包")
+        # print("❌ 無法接收 Motion 封包")
         return
     try:
         if power_ser.is_open:
@@ -478,7 +478,7 @@ def ship_controller():
 
 def push_video_process_func():
     sio = create_resilient_sio("Video")
-    sio.emit("get_video_info", {"device": "edge_01", "url": RTSP_URL})
+    sio.emit("get_video_info", {"device": "edge_01", "url": RTSP_URL}, callback=None)
     retry_count = 0
 
     while True:
