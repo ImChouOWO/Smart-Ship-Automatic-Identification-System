@@ -145,14 +145,15 @@ def imu_process_func(shared_imu):
             if result:
                 imu_data = ['%.3f' % result[0], '%.3f' % result[1], '%.3f' % (result[2] - 167)]
                 shared_imu['rpy'] = imu_data
+                print(f"📥 IMU Data: {imu_data}")
                 try:
                     if sio is None or not sio.connected:
-                        print("🔁 IMU SocketIO lost. Reconnecting...")
+                        # print("🔁 IMU SocketIO lost. Reconnecting...")
                         sio = create_resilient_sio("IMU")
                         continue
                     if sio.connected:
                         sio.emit("get_imu", imu_data, callback=None)
-                        print(f"📤 Sent IMU data: {imu_data}")
+                        # print(f"📤 Sent IMU data: {imu_data}")
                 except Exception as e:
                     print(f"❌ IMU emit error: {e}")
                     time.sleep(1)
