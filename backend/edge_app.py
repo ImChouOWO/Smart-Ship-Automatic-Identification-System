@@ -483,7 +483,7 @@ def push_video_process_func():
 
     while True:
         if not os.path.exists(VIDEO_DEVICE):
-            print(f"⚠️ Video device {VIDEO_DEVICE} not found. Retrying...")
+            # print(f"⚠️ Video device {VIDEO_DEVICE} not found. Retrying...")
             time.sleep(0.01)
             retry_count += 1
             if retry_count % 6 == 0:
