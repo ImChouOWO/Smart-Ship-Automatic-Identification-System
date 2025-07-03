@@ -78,7 +78,7 @@ def create_resilient_sio(name="module"):
     def disconnect():
         print(f"❌ [{name}] SocketIO Disconnected")
 
-    sio = sio_connecter(sio, timeout=0.1)
+    sio = sio_connecter(sio, timeout=1)
 
     if sio is None or not sio.connected:
         print(f"⚠️ [{name}] SocketIO connection failed or not connected")
