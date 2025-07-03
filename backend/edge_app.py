@@ -66,8 +66,8 @@ def create_resilient_sio(name="module"):
     print(f"🔌 [{name}] Connecting to SocketIO server...")
     sio = socketio.Client(
         reconnection=True,
-        reconnection_attempts=1,
-        reconnection_delay=0.1
+        reconnection_attempts=5,
+        reconnection_delay=1
     )
 
     @sio.event
@@ -296,7 +296,7 @@ def controller_process_func(shared_imu, shared_gps):
             else:
                 connect_to_power(power_ser, LAST_VALID_PACKET)
             time.sleep(0.5)
-            
+
             if sio is None or not sio.connected:
                 sio = create_resilient_sio("motion_power TTL")
                 continue  # 不要送封包
