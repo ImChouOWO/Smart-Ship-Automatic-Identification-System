@@ -557,7 +557,14 @@ if __name__ == "__main__":
         controller_proc.join()
 
     except KeyboardInterrupt:
-        print("🛑 KeyboardInterrupt. Closing connection...")
+            print("🛑 KeyboardInterrupt. Closing connection...")
+            # 手動終止 subprocess
+            for proc in [imu_proc, gps_proc, controller_proc, video_proc]:
+                if proc.is_alive():
+                    print(f"🧹 Terminating process: {proc.name}")
+                    proc.terminate()
+                    proc.join()
+            print("✅ All subprocesses terminated.")
 
 
 
