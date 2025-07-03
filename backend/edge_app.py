@@ -127,7 +127,7 @@ def imu_process_func(shared_imu):
 
     try:
         
-        time.sleep(0.01)
+        time.sleep(0.5)
 
         while True:
             
@@ -152,7 +152,7 @@ def imu_process_func(shared_imu):
                         continue
                     if sio.connected:
                         sio.emit("get_imu", imu_data, callback=None)
-                        # print(f"📤 Sent IMU data: {imu_data}")
+                        print(f"📤 Sent IMU data: {imu_data}")
                 except Exception as e:
                     print(f"❌ IMU emit error: {e}")
                     time.sleep(1)
@@ -331,7 +331,7 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
             return packet
         else:
             MOTION_CONNECT = False
-            print("❌ 無法接收Motion 封包")
+            # print("❌ 無法接收Motion 封包")
             return None
 
     except Exception as e:
