@@ -11,7 +11,7 @@ import threading
 RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins='*')  # 允許跨來源連接
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode="eventlet")  # 允許跨來源連接
 device_status = {}
 
 
@@ -114,5 +114,5 @@ def start_rtsp_server():
 
 if __name__ == '__main__':
     start_rtsp_server()
-    socketio.run(app, debug=False, use_reloader=False, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=False, use_reloader=False, host='0.0.0.0', port=5000)
 
