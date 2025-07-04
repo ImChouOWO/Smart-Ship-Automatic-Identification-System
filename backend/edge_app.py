@@ -123,11 +123,11 @@ def imu_process_func(shared_imu):
 
             result = DueData(value)
             if result:
-                correction = 40  
+                correction = 30  
                 imu_data = [
                     '%.3f' % result[0],
                     '%.3f' % result[1],
-                    '%.3f' % ((result[2] + 360))
+                    '%.3f' % ((result[2] + 360 - correction))
                 ]
 
 
