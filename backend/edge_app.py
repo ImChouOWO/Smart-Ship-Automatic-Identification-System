@@ -123,7 +123,9 @@ def imu_process_func(shared_imu):
 
             result = DueData(value)
             if result:
-                imu_data = ['%.3f' % result[0], '%.3f' % result[1], '%.3f' % ((result[2] - 167) % 360)]
+                imu_data = ['%.3f' % result[0], 
+                            '%.3f' % result[1], 
+                            '%.3f' % ((result[2] + 360) % 360)]
                 shared_imu['rpy'] = imu_data
 
     except Exception as e:
