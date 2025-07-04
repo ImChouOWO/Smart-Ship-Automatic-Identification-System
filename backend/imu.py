@@ -39,14 +39,14 @@ def GetDataDeal(buf):
 def DueData(b):
     global yaw, last_time, last_reset, CheckSum, start, data_length
 
-    now = time.time()
-    if last_time is None:
-        last_time = now
+    # now = time.time()
+    # if last_time is None:
+    #     last_time = now
 
-    # 每10秒重置 yaw
-    if now - last_reset >= RESET_INTERVAL:
-        yaw = 0.0
-        last_reset = now
+    # # 每10秒重置 yaw
+    # if now - last_reset >= RESET_INTERVAL:
+    #     yaw = 0.0
+    #     last_reset = now
 
     # 讀取 IMU 資料
     if b == 0x55 and start == 0:
@@ -64,10 +64,10 @@ def DueData(b):
             CheckSum = (CheckSum - b) & 0xff
             start = 0
             if GetDataDeal(RxBuff):
-                dt = now - last_time
-                if abs(gz_latest) > GYRO_THRESHOLD and dt > 0:
-                    yaw = (yaw + gz_latest * dt) % 360
-                last_time = now
+                # dt = now - last_time
+                # if abs(gz_latest) > GYRO_THRESHOLD and dt > 0:
+                #     yaw = (yaw + gz_latest * dt) % 360
+                # last_time = now
                 return yaw
     return None
 
