@@ -11,6 +11,7 @@ import {
 import Ship from './page/ship';
 import { socket } from './socket';
 
+// Leaflet 修復圖示
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -50,30 +51,24 @@ const App = () => {
     rudderAngle: 10,
   });
 
-  // ✅ 新增 ship_status 接收邏輯
   useEffect(() => {
     socket.on('ship_status', (data) => {
       console.log("📥 ship_status data:", data);
 
-      if (data.imu) {
-        const [roll, pitch, yaw] = data.imu.map(parseFloat);
-        setShipData((prev) => ({
-          ...prev,
-          imu: { roll, pitch, yaw },
-        }));
-      }
-
-      if (data.gps) {
-        setShipData((prev) => ({
-          ...prev,
-          position: {
-            time: data.gps.time,
-            latitude: parseFloat(data.gps.latitude),
-            longitude: parseFloat(data.gps.longitude),
-            altitude: parseFloat(data.gps.altitude),
-          },
-        }));
-      }
+      setShipData({
+        ...shipData,
+        imu: data.imu ? {
+          roll: parseFloat(data.imu[0]),
+          pitch: parseFloat(data.imu[1]),
+          yaw: parseFloat(data.imu[2]),
+        } : shipData.imu,
+        position: data.gps ? {
+          time: data.gps.time,
+          latitude: parseFloat(data.gps.latitude),
+          longitude: parseFloat(data.gps.longitude),
+          altitude: parseFloat(data.gps.altitude),
+        } : shipData.position,
+      });
 
       if (data.status) {
         setMotionStatus(!!data.status.motion);
@@ -82,7 +77,7 @@ const App = () => {
     });
 
     return () => socket.off('ship_status');
-  }, []);
+  }, [shipData]);
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: '#1E3A5F', p: 3 }}>
@@ -94,7 +89,6 @@ const App = () => {
           <Typography color="#D1D5DB">Real-time Monitoring and Data Analysis</Typography>
         </Box>
 
-        {/* Camera + IMU */}
         <Box display="flex" gap={3} mb={3}>
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
             <CardHeader title="Real-time Camera Feed" avatar={<Webcam color="#00AEEF" />} />
@@ -129,7 +123,6 @@ const App = () => {
           </Card>
         </Box>
 
-        {/* Status + GPS */}
         <Box display="flex" gap={3} mb={3}>
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
             <CardHeader title="Module Status" avatar={<AlertTriangle color="#00AEEF" />} />
@@ -157,7 +150,6 @@ const App = () => {
           </Card>
         </Box>
 
-        {/* Rudder / Battery / Signal */}
         <Box display="flex" gap={3} mb={3}>
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
             <CardHeader title="Rudder Angle" avatar={<Move color="#00AEEF" />} />
@@ -191,7 +183,6 @@ const App = () => {
           </Card>
         </Box>
 
-        {/* 地圖區塊 */}
         {
           shipData.position.latitude !== 0 && shipData.position.longitude !== 0 && (
             <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF' }}>
