@@ -1,216 +1,88 @@
 # coding:UTF-8
-# Version: V1.6
+# Version: V2.0 - Gyro-based Yaw with reset every 10s
+
 import serial
 import math
+import time
 
 buf_length = 11
-
 RxBuff = [0]*buf_length
 
-ACCData = [0.0]*8
 GYROData = [0.0]*8
-AngleData = [0.0]*8
-MagData = [0.0]*8
 
-acc = [0.0]*3
-gyro = [0.0]*3
-Angle = [0.0]*3
-mag = [0.0]*3
+# 全域變數
+yaw = 0.0
+last_time = None
+last_reset = time.time()
 
-FrameState = 0
-CheckSum = 0
-start = 0
-data_length = 0
+# 側轉閾值、reset 週期
+GYRO_THRESHOLD = 1.0   # deg/s 以下視為靜止
+RESET_INTERVAL = 10.0  # 每 10 秒重設 yaw
 
-latest_roll = None
-latest_pitch = None
-latest_mag = None
+def get_gyro(datahex):
+    wxl, wxh, wyl, wyh, wzl, wzh = datahex[:6]
+    k = 2000.0
+    gz = (wzh << 8 | wzl) / 32768.0 * k
+    if gz >= k: gz -= 2 * k
+    return gz
 
-# --- 校正表：實測 heading 對應的實際方向（可自行調整） ---
-calibration_table = [
-    (190, 0),    # 實測北對應 190°
-    (157, 90),   # 實測東對應 157°
-    (168, 180),  # 實測南對應 168°
-    (200, 270),  # 實測西對應 200°
-]
-
-def calibrate_heading(raw_heading):
-    raw_heading = raw_heading % 360
-    for i in range(len(calibration_table)):
-        raw1, true1 = calibration_table[i]
-        raw2, true2 = calibration_table[(i + 1) % len(calibration_table)]
-
-        if raw2 < raw1:
-            raw2 += 360
-            if raw_heading < raw1:
-                raw_heading += 360
-
-        if raw1 <= raw_heading <= raw2:
-            ratio = (raw_heading - raw1) / (raw2 - raw1)
-            true_heading = (true1 + ratio * (true2 - true1)) % 360
-            return true_heading
-
-    return raw_heading
-
-def get_mag(datahex):
-    mxl = datahex[0]
-    mxh = datahex[1]
-    myl = datahex[2]
-    myh = datahex[3]
-    mzl = datahex[4]
-    mzh = datahex[5]
-    k_mag = 1.0
-
-    mag_x = (mxh << 8 | mxl) / 32768.0 * k_mag
-    mag_y = (myh << 8 | myl) / 32768.0 * k_mag
-    mag_z = (mzh << 8 | mzl) / 32768.0 * k_mag
-
-    if mag_x >= k_mag:
-        mag_x -= 2 * k_mag
-    if mag_y >= k_mag:
-        mag_y -= 2 * k_mag
-    if mag_z >= k_mag:
-        mag_z -= 2 * k_mag
-
-    return mag_x, mag_y, mag_z
-
-def compute_heading(roll, pitch, mag):
-    mx, my, mz = mag
-    roll_r = math.radians(roll)
-    pitch_r = math.radians(pitch)
-
-    Xh = mx * math.cos(pitch_r) + my * math.sin(roll_r) * math.sin(pitch_r) + mz * math.cos(roll_r) * math.sin(pitch_r)
-    Yh = my * math.cos(roll_r) - mz * math.sin(roll_r)
-
-    hdg = math.degrees(math.atan2(Yh, Xh))
-    hdg = (hdg + 360) % 360
-
-    # 加入校正
-    hdg = calibrate_heading(hdg)
-
-    return hdg
-
-def GetDataDeal(list_buf):
-    global acc, gyro, Angle, mag
-    global latest_roll, latest_pitch, latest_mag
-
-    if(list_buf[buf_length - 1] != CheckSum):
-        return None
-
-    if(list_buf[1] == 0x51):
+def GetDataDeal(buf):
+    global gz_latest
+    if buf[-1] != CheckSum: return False
+    if buf[1] == 0x52:
         for i in range(6):
-            ACCData[i] = list_buf[2+i]
-        acc = get_acc(ACCData)
+            GYROData[i] = buf[2+i]
+        gz_latest = get_gyro(GYROData)
+        return True
+    return False
 
-    elif(list_buf[1] == 0x52):
-        for i in range(6):
-            GYROData[i] = list_buf[2+i]
-        gyro = get_gyro(GYROData)
+def DueData(b):
+    global yaw, last_time, last_reset, CheckSum, start, data_length
 
-    elif(list_buf[1] == 0x53):
-        for i in range(6):
-            AngleData[i] = list_buf[2+i]
-        Angle = get_angle(AngleData)
-        latest_roll, latest_pitch = Angle[0], Angle[1]
+    now = time.time()
+    if last_time is None:
+        last_time = now
 
-    elif(list_buf[1] == 0x54):
-        for i in range(6):
-            MagData[i] = list_buf[2+i]
-        mag = get_mag(MagData)
-        latest_mag = mag
+    # 每10秒重置 yaw
+    if now - last_reset >= RESET_INTERVAL:
+        yaw = 0.0
+        last_reset = now
 
-    if latest_roll is not None and latest_pitch is not None and latest_mag is not None:
-        heading = compute_heading(latest_roll, latest_pitch, latest_mag)
-        return latest_roll, latest_pitch, heading
-
-    return None
-
-def DueData(inputdata):
-    global start, CheckSum, data_length
-    if inputdata == 0x55 and start == 0:
+    # 讀取 IMU 資料
+    if b == 0x55 and start == 0:
         start = 1
         data_length = 11
         CheckSum = 0
         for i in range(11):
             RxBuff[i] = 0
 
-    if start == 1:
-        CheckSum += inputdata
-        RxBuff[buf_length - data_length] = inputdata
+    if start:
+        CheckSum += b
+        RxBuff[buf_length-data_length] = b
         data_length -= 1
         if data_length == 0:
-            CheckSum = (CheckSum - inputdata) & 0xff
+            CheckSum = (CheckSum - b) & 0xff
             start = 0
-            return GetDataDeal(RxBuff)
+            if GetDataDeal(RxBuff):
+                dt = now - last_time
+                if abs(gz_latest) > GYRO_THRESHOLD and dt > 0:
+                    yaw = (yaw + gz_latest * dt) % 360
+                last_time = now
+                return yaw
+    return None
 
-def get_acc(datahex):
-    axl = datahex[0]
-    axh = datahex[1]
-    ayl = datahex[2]
-    ayh = datahex[3]
-    azl = datahex[4]
-    azh = datahex[5]
-    k_acc = 16.0
-    acc_x = (axh << 8 | axl) / 32768.0 * k_acc
-    acc_y = (ayh << 8 | ayl) / 32768.0 * k_acc
-    acc_z = (azh << 8 | azl) / 32768.0 * k_acc
-    if acc_x >= k_acc:
-        acc_x -= 2 * k_acc
-    if acc_y >= k_acc:
-        acc_y -= 2 * k_acc
-    if acc_z >= k_acc:
-        acc_z -= 2 * k_acc
-    return acc_x, acc_y, acc_z
+# 初始化
+start = 0
+CheckSum = 0
+data_length = 0
+gz_latest = None
 
-def get_gyro(datahex):
-    wxl = datahex[0]
-    wxh = datahex[1]
-    wyl = datahex[2]
-    wyh = datahex[3]
-    wzl = datahex[4]
-    wzh = datahex[5]
-    k_gyro = 2000.0
-    gyro_x = (wxh << 8 | wxl) / 32768.0 * k_gyro
-    gyro_y = (wyh << 8 | wyl) / 32768.0 * k_gyro
-    gyro_z = (wzh << 8 | wzl) / 32768.0 * k_gyro
-    if gyro_x >= k_gyro:
-        gyro_x -= 2 * k_gyro
-    if gyro_y >= k_gyro:
-        gyro_y -= 2 * k_gyro
-    if gyro_z >= k_gyro:
-        gyro_z -= 2 * k_gyro
-    return gyro_x, gyro_y, gyro_z
-
-def get_angle(datahex):
-    rxl = datahex[0]
-    rxh = datahex[1]
-    ryl = datahex[2]
-    ryh = datahex[3]
-    rzl = datahex[4]
-    rzh = datahex[5]
-    k_angle = 180.0
-    angle_x = (rxh << 8 | rxl) / 32768.0 * k_angle
-    angle_y = (ryh << 8 | ryl) / 32768.0 * k_angle
-    angle_z = (rzh << 8 | rzl) / 32768.0 * k_angle
-    if angle_x >= k_angle:
-        angle_x -= 2 * k_angle
-    if angle_y >= k_angle:
-        angle_y -= 2 * k_angle
-    if angle_z >= k_angle:
-        angle_z -= 2 * k_angle
-    return angle_x, angle_y, angle_z
-
-if __name__ == '__main__':
-    port = '/dev/ttyUSB0'  # Linux
-    # port = 'COM12'        # Windows
-    baud = 9600
-    ser = serial.Serial(port, baud, timeout=0.5)
-    print("Serial is Opened:", ser.is_open)
+if __name__ == "__main__":
+    ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=0.5)
+    print("Serial opened:", ser.is_open)
     while True:
-        RXdata = ser.read(1)
-        if RXdata:
-            RXdata = int(RXdata.hex(), 16)
-            result = DueData(RXdata)
-            if result:
-                roll, pitch, heading = result
-                print(f"✅ Roll: {roll:.2f}°, Pitch: {pitch:.2f}°, Heading (Calibrated): {heading:.2f}°")
+        b = ser.read(1)
+        if not b: continue
+        res = DueData(int(b.hex(),16))
+        if res is not None:
+            print(f"Yaw: {res:.2f}°")
