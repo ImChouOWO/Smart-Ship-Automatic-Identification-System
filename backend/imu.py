@@ -26,6 +26,32 @@ latest_roll = None
 latest_pitch = None
 latest_mag = None
 
+# --- 校正表：實測 heading 對應的實際方向（可自行調整） ---
+calibration_table = [
+    (190, 0),    # 實測北對應 190°
+    (157, 90),   # 實測東對應 157°
+    (168, 180),  # 實測南對應 168°
+    (200, 270),  # 實測西對應 200°
+]
+
+def calibrate_heading(raw_heading):
+    raw_heading = raw_heading % 360
+    for i in range(len(calibration_table)):
+        raw1, true1 = calibration_table[i]
+        raw2, true2 = calibration_table[(i + 1) % len(calibration_table)]
+
+        if raw2 < raw1:
+            raw2 += 360
+            if raw_heading < raw1:
+                raw_heading += 360
+
+        if raw1 <= raw_heading <= raw2:
+            ratio = (raw_heading - raw1) / (raw2 - raw1)
+            true_heading = (true1 + ratio * (true2 - true1)) % 360
+            return true_heading
+
+    return raw_heading
+
 def get_mag(datahex):
     mxl = datahex[0]
     mxh = datahex[1]
@@ -53,19 +79,16 @@ def compute_heading(roll, pitch, mag):
     roll_r = math.radians(roll)
     pitch_r = math.radians(pitch)
 
-    # 傾角補償
     Xh = mx * math.cos(pitch_r) + my * math.sin(roll_r) * math.sin(pitch_r) + mz * math.cos(roll_r) * math.sin(pitch_r)
     Yh = my * math.cos(roll_r) - mz * math.sin(roll_r)
 
-    # 原始 heading
     hdg = math.degrees(math.atan2(Yh, Xh))
+    hdg = (hdg + 360) % 360
 
-    # 加入校正角（例如北偏到 190°，應減回 190°）
-    heading_offset = 190.0
-    hdg = (hdg - heading_offset + 360) % 360
+    # 加入校正
+    hdg = calibrate_heading(hdg)
 
     return hdg
-
 
 def GetDataDeal(list_buf):
     global acc, gyro, Angle, mag
@@ -96,13 +119,11 @@ def GetDataDeal(list_buf):
         mag = get_mag(MagData)
         latest_mag = mag
 
-    # 如果都有 roll/pitch 和 mag，才計算 heading
     if latest_roll is not None and latest_pitch is not None and latest_mag is not None:
         heading = compute_heading(latest_roll, latest_pitch, latest_mag)
         return latest_roll, latest_pitch, heading
 
     return None
-
 
 def DueData(inputdata):
     global start, CheckSum, data_length
@@ -179,7 +200,6 @@ def get_angle(datahex):
         angle_z -= 2 * k_angle
     return angle_x, angle_y, angle_z
 
-
 if __name__ == '__main__':
     port = '/dev/ttyUSB0'  # Linux
     # port = 'COM12'        # Windows
@@ -193,4 +213,4 @@ if __name__ == '__main__':
             result = DueData(RXdata)
             if result:
                 roll, pitch, heading = result
-                print(f"✅ Roll: {roll:.2f}°, Pitch: {pitch:.2f}°, Heading: {heading:.2f}°")
+                print(f"✅ Roll: {roll:.2f}°, Pitch: {pitch:.2f}°, Heading (Calibrated): {heading:.2f}°")
