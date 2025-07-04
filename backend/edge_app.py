@@ -438,8 +438,9 @@ def socket_process_func(shared_imu, shared_gps):
                 print("❌ SocketIO connection failed. Retrying...")
                 time.sleep(1)
                 continue
-            
+
             while sio.connected:
+                print("✅ SocketIO connected. Starting to emit ship_status...")
                 sio.emit("ship_status", {
                     "imu": shared_imu.get("rpy", [0,0,0]),
                     "gps": shared_gps.copy(),  # 避免 race condition
