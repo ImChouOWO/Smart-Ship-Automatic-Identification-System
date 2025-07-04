@@ -34,10 +34,9 @@ def handle_ship_status(msg):
     device_status[device]["gps"] = msg.get("gps", {})
     device_status[device]["status"] = msg.get("status", {})
 
-    # 伺服器端轉發（目前沒用到）
-    socketio.emit("server_imu", msg.get("imu", {}))
-    socketio.emit("server_gps", msg.get("gps", {}))
-    socketio.emit("ttl_status", msg.get("status", {}))
+    # ✅ 原封不動轉發給前端
+    socketio.emit("ship_status", msg)
+
 
 
 @socketio.on("get_lidar")
