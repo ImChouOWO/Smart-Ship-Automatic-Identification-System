@@ -2,7 +2,7 @@ import subprocess
 import socketio
 import time
 import os
-from imu import DueData, compute_heading
+from imu import DueData
 import lidar
 from multiprocessing import Process, Manager
 import multiprocessing
