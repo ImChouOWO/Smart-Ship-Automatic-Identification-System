@@ -1,6 +1,7 @@
 # coding:UTF-8
-# Version: V1.5.1
+# Version: V1.6
 import serial
+import math
 
 buf_length = 11
 
@@ -9,68 +10,99 @@ RxBuff = [0]*buf_length
 ACCData = [0.0]*8
 GYROData = [0.0]*8
 AngleData = [0.0]*8
-FrameState = 0  # What is the state of the judgment
-CheckSum = 0  # Sum check bit
-
-start = 0 #帧头开始的标志
-data_length = 0 #根据协议的文档长度为11 eg:55 51 31 FF 53 02 CD 07 12 0A 1B
+MagData = [0.0]*8
 
 acc = [0.0]*3
 gyro = [0.0]*3
 Angle = [0.0]*3
+mag = [0.0]*3
+
+FrameState = 0
+CheckSum = 0
+start = 0
+data_length = 0
+
+def get_mag(datahex):
+    mxl = datahex[0]
+    mxh = datahex[1]
+    myl = datahex[2]
+    myh = datahex[3]
+    mzl = datahex[4]
+    mzh = datahex[5]
+    k_mag = 1.0
+
+    mag_x = (mxh << 8 | mxl) / 32768.0 * k_mag
+    mag_y = (myh << 8 | myl) / 32768.0 * k_mag
+    mag_z = (mzh << 8 | mzl) / 32768.0 * k_mag
+
+    if mag_x >= k_mag:
+        mag_x -= 2 * k_mag
+    if mag_y >= k_mag:
+        mag_y -= 2 * k_mag
+    if mag_z >= k_mag:
+        mag_z -= 2 * k_mag
+
+    return mag_x, mag_y, mag_z
+
+def compute_heading(roll, pitch, mag):
+    mx, my, mz = mag
+    roll_r = math.radians(roll)
+    pitch_r = math.radians(pitch)
+
+    Xh = mx * math.cos(pitch_r) + my * math.sin(roll_r) * math.sin(pitch_r) + mz * math.cos(roll_r) * math.sin(pitch_r)
+    Yh = my * math.cos(roll_r) - mz * math.sin(roll_r)
+
+    hdg = (math.degrees(math.atan2(Yh, Xh)) + 360) % 360
+    return hdg
 
 def GetDataDeal(list_buf):
-    global acc,gyro,Angle
+    global acc, gyro, Angle, mag
 
-    if(list_buf[buf_length - 1] != CheckSum): #校验码不正确
-        return
-        
-    if(list_buf[1] == 0x51): #加速度输出
-        for i in range(6): 
-            ACCData[i] = list_buf[2+i] #有效数据赋值
+    if(list_buf[buf_length - 1] != CheckSum):
+        return None
+
+    if(list_buf[1] == 0x51):
+        for i in range(6):
+            ACCData[i] = list_buf[2+i]
         acc = get_acc(ACCData)
 
-    elif(list_buf[1] == 0x52): #角速度输出
-        for i in range(6): 
-            GYROData[i] = list_buf[2+i] #有效数据赋值
+    elif(list_buf[1] == 0x52):
+        for i in range(6):
+            GYROData[i] = list_buf[2+i]
         gyro = get_gyro(GYROData)
 
-    elif(list_buf[1] == 0x53): #姿态角度输出
-        for i in range(6): 
-            AngleData[i] = list_buf[2+i] #有效数据赋值
+    elif(list_buf[1] == 0x53):
+        for i in range(6):
+            AngleData[i] = list_buf[2+i]
         Angle = get_angle(AngleData)
 
-    # print("acc:%10.3f %10.3f %10.3f \n" % (acc[0],acc[1],acc[2]))
-    # print("gyro:%10.3f %10.3f %10.3f \n" % (gyro[0],gyro[1],gyro[2]))
-    # print("angle:%10.3f %10.3f %10.3f \n" % (Angle[0],Angle[1],Angle[2]))
+    elif(list_buf[1] == 0x54):
+        for i in range(6):
+            MagData[i] = list_buf[2+i]
+        mag = get_mag(MagData)
 
-    return Angle
+    # ➕ 新增 heading 計算
+    heading = compute_heading(Angle[0], Angle[1], mag)
+    return Angle[0], Angle[1], heading
 
-    
-    
 
-def DueData(inputdata):  # New core procedures, read the data partition, each read to the corresponding array 
-    global start
-    global CheckSum
-    global data_length
-    # print(type(inputdata))
+def DueData(inputdata):
+    global start, CheckSum, data_length
     if inputdata == 0x55 and start == 0:
         start = 1
         data_length = 11
         CheckSum = 0
-        #清0
         for i in range(11):
             RxBuff[i] = 0
 
     if start == 1:
-        CheckSum += inputdata #校验码计算 会把校验位加上
-        RxBuff[buf_length-data_length] = inputdata #保存数据
-        data_length = data_length - 1 #长度减一
-        if data_length == 0: #接收到完整的数据
-            CheckSum = (CheckSum-inputdata) & 0xff 
-            start = 0 #清0
-            res = GetDataDeal(RxBuff)  #处理数据
-            return res
+        CheckSum += inputdata
+        RxBuff[buf_length - data_length] = inputdata
+        data_length -= 1
+        if data_length == 0:
+            CheckSum = (CheckSum - inputdata) & 0xff
+            start = 0
+            return GetDataDeal(RxBuff)
 
 def get_acc(datahex):
     axl = datahex[0]
@@ -91,7 +123,6 @@ def get_acc(datahex):
         acc_z -= 2 * k_acc
     return acc_x, acc_y, acc_z
 
-
 def get_gyro(datahex):
     wxl = datahex[0]
     wxh = datahex[1]
@@ -110,7 +141,6 @@ def get_gyro(datahex):
     if gyro_z >= k_gyro:
         gyro_z -= 2 * k_gyro
     return gyro_x, gyro_y, gyro_z
-
 
 def get_angle(datahex):
     rxl = datahex[0]
@@ -131,14 +161,16 @@ def get_angle(datahex):
         angle_z -= 2 * k_angle
     return angle_x, angle_y, angle_z
 
+
+
 if __name__ == '__main__':
-    port = '/dev/ttyUSB0' # USB serial port linux
-    #port = 'COM12' # USB serial port  windowns
-    baud = 9600   # Same baud rate as the INERTIAL navigation module
+    port = '/dev/ttyUSB0'  # Linux
+    # port = 'COM12'        # Windows
+    baud = 9600
     ser = serial.Serial(port, baud, timeout=0.5)
     print("Serial is Opened:", ser.is_open)
-    while(1):
-        RXdata = ser.read(1)#一个一个读
-        RXdata = int(RXdata.hex(),16) #转成16进制显示
-        DueData(RXdata)
-        
+    while True:
+        RXdata = ser.read(1)
+        if RXdata:
+            RXdata = int(RXdata.hex(), 16)
+            DueData(RXdata)

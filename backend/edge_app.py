@@ -2,7 +2,7 @@ import subprocess
 import socketio
 import time
 import os
-from imu import DueData
+from imu import DueData, compute_heading
 import lidar
 from multiprocessing import Process, Manager
 import multiprocessing
@@ -123,14 +123,13 @@ def imu_process_func(shared_imu):
 
             result = DueData(value)
             if result:
-                correction = 30  
+                
+                roll, pitch, heading = result
                 imu_data = [
-                    '%.3f' % result[0],
-                    '%.3f' % result[1],
-                    '%.3f' % (result[2] )
+                    '%.3f' % roll,
+                    '%.3f' % pitch,
+                    '%.3f' % heading
                 ]
-
-
                 shared_imu['rpy'] = imu_data
 
     except Exception as e:
