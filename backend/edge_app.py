@@ -125,7 +125,7 @@ def imu_process_func(shared_imu):
             if result:
                 imu_data = ['%.3f' % result[0], 
                             '%.3f' % result[1], 
-                            '%.3f' % ((result[2] + 320) % 360)]
+                            '%.3f' % ((result[2] + 360) % 360)-40]
                 shared_imu['rpy'] = imu_data
 
     except Exception as e:
