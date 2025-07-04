@@ -449,7 +449,7 @@ def socket_process_func(shared_imu, shared_gps):
                         "power": POWER_CONNECT
                     }
                 })
-                time.sleep(1)
+                time.sleep(0.5)
         except Exception as e:
             print(f"❌ SocketIO process error: {e}")
             time.sleep(1)
