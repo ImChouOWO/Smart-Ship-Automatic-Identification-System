@@ -127,7 +127,7 @@ def imu_process_func(shared_imu):
                 imu_data = [
                     '%.3f' % result[0],
                     '%.3f' % result[1],
-                    '%.3f' % ((result[2] + 360) % 360 + correction)
+                    '%.3f' % ((result[2] + 360))
                 ]
 
 
