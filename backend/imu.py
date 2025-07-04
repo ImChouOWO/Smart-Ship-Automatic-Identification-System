@@ -22,6 +22,10 @@ CheckSum = 0
 start = 0
 data_length = 0
 
+latest_roll = None
+latest_pitch = None
+latest_mag = None
+
 def get_mag(datahex):
     mxl = datahex[0]
     mxh = datahex[1]
@@ -57,6 +61,7 @@ def compute_heading(roll, pitch, mag):
 
 def GetDataDeal(list_buf):
     global acc, gyro, Angle, mag
+    global latest_roll, latest_pitch, latest_mag
 
     if(list_buf[buf_length - 1] != CheckSum):
         return None
@@ -75,15 +80,20 @@ def GetDataDeal(list_buf):
         for i in range(6):
             AngleData[i] = list_buf[2+i]
         Angle = get_angle(AngleData)
+        latest_roll, latest_pitch = Angle[0], Angle[1]
 
     elif(list_buf[1] == 0x54):
         for i in range(6):
             MagData[i] = list_buf[2+i]
         mag = get_mag(MagData)
+        latest_mag = mag
 
-    # ➕ 新增 heading 計算
-    heading = compute_heading(Angle[0], Angle[1], mag)
-    return Angle[0], Angle[1], heading
+    # 如果都有 roll/pitch 和 mag，才計算 heading
+    if latest_roll is not None and latest_pitch is not None and latest_mag is not None:
+        heading = compute_heading(latest_roll, latest_pitch, latest_mag)
+        return latest_roll, latest_pitch, heading
+
+    return None
 
 
 def DueData(inputdata):
@@ -162,7 +172,6 @@ def get_angle(datahex):
     return angle_x, angle_y, angle_z
 
 
-
 if __name__ == '__main__':
     port = '/dev/ttyUSB0'  # Linux
     # port = 'COM12'        # Windows
@@ -173,4 +182,7 @@ if __name__ == '__main__':
         RXdata = ser.read(1)
         if RXdata:
             RXdata = int(RXdata.hex(), 16)
-            DueData(RXdata)
+            result = DueData(RXdata)
+            if result:
+                roll, pitch, heading = result
+                print(f"✅ Roll: {roll:.2f}°, Pitch: {pitch:.2f}°, Heading: {heading:.2f}°")
