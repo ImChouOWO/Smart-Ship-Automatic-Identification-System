@@ -53,11 +53,19 @@ def compute_heading(roll, pitch, mag):
     roll_r = math.radians(roll)
     pitch_r = math.radians(pitch)
 
+    # 傾角補償
     Xh = mx * math.cos(pitch_r) + my * math.sin(roll_r) * math.sin(pitch_r) + mz * math.cos(roll_r) * math.sin(pitch_r)
     Yh = my * math.cos(roll_r) - mz * math.sin(roll_r)
 
-    hdg = (math.degrees(math.atan2(Yh, Xh)) + 360) % 360
+    # 原始 heading
+    hdg = math.degrees(math.atan2(Yh, Xh))
+
+    # 加入校正角（例如北偏到 190°，應減回 190°）
+    heading_offset = 190.0
+    hdg = (hdg - heading_offset + 360) % 360
+
     return hdg
+
 
 def GetDataDeal(list_buf):
     global acc, gyro, Angle, mag
