@@ -123,7 +123,7 @@ def imu_process_func(shared_imu):
 
             result = DueData(value)
             if result:
-                imu_data = ['%.3f' % result[0], '%.3f' % result[1], '%.3f' % (result[2] - 167)]
+                imu_data = ['%.3f' % result[0], '%.3f' % result[1], '%.3f' % ((result[2] - 167) % 360)]
                 shared_imu['rpy'] = imu_data
 
     except Exception as e:
@@ -274,7 +274,7 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         rpy = shared_imu.get('rpy', [0.0, 0.0, 0.0])
         roll = float(rpy[0])
         pitch = float(rpy[1])
-        yaw = abs(float(rpy[2]))
+        yaw = float(rpy[2])
 
         lat = shared_gps.get('latitude', 0.0)
         lon = shared_gps.get('longitude', 0.0)
