@@ -123,12 +123,15 @@ def imu_process_func(shared_imu):
 
             result = DueData(value)
             if result:
-                correction = 30  
+                yaw_raw = result[2]
+                yaw_heading = (yaw_raw + 90 + 360) % 360  # 東為0轉換成北為0的 heading 表示法
+
                 imu_data = [
                     '%.3f' % result[0],
                     '%.3f' % result[1],
-                    '%.3f' % (result[2] )
+                    '%.3f' % yaw_heading
                 ]
+
 
 
                 shared_imu['rpy'] = imu_data
