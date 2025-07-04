@@ -123,7 +123,7 @@ def imu_process_func(shared_imu):
 
             result = DueData(value)
             if result:
-                correction = 103  
+                correction = 13  
                 imu_data = [
                     '%.3f' % result[0],
                     '%.3f' % result[1],
