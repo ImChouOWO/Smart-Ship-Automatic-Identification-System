@@ -274,7 +274,7 @@ def connect_to_motion(motion_ser, shared_imu, shared_gps):
         rpy = shared_imu.get('rpy', [0.0, 0.0, 0.0])
         roll = float(rpy[0])
         pitch = float(rpy[1])
-        yaw = float(rpy[2])
+        yaw = abs(float(rpy[2]))
 
         lat = shared_gps.get('latitude', 0.0)
         lon = shared_gps.get('longitude', 0.0)
