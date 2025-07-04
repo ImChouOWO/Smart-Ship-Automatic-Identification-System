@@ -438,9 +438,7 @@ def socket_process_func(shared_imu, shared_gps):
                 print("❌ SocketIO connection failed. Retrying...")
                 time.sleep(1)
                 continue
-
-            # 等待連接成功
-            sio.wait()
+            
             while sio.connected:
                 sio.emit("ship_status", {
                     "imu": shared_imu.get("rpy", [0,0,0]),
