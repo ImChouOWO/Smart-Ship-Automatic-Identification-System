@@ -7,12 +7,10 @@ import {
 } from 'lucide-react';
 import {
   Card, CardContent, CardHeader, Box, Typography, LinearProgress,
-  Fab
 } from '@mui/material';
 import Ship from './page/ship';
 import { socket } from './socket';
 
-// 修復 Leaflet 的 icon 問題
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -20,7 +18,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-// 地圖動態更新中心
 const MapUpdater = ({ position }) => {
   const map = useMap();
   useEffect(() => {
@@ -53,55 +50,38 @@ const App = () => {
     rudderAngle: 10,
   });
 
+  // ✅ 新增 ship_status 接收邏輯
   useEffect(() => {
-    socket.on('server_imu', (data) => {
-      console.log("📥 IMU data from server:", data);
-      setShipData((prev) => ({
-        ...prev,
-        imu: {
-          roll: parseFloat(data.roll),
-          pitch: parseFloat(data.pitch),
-          yaw: parseFloat(data.yaw),
-        },
-      }));
-    });
-    return () => socket.off('server_imu');
-  }, []);
+    socket.on('ship_status', (data) => {
+      console.log("📥 ship_status data:", data);
 
-  useEffect(() => {
-    socket.on('server_gps', (data) => {
-      console.log("📥 GPS data from server:", data);
-      setShipData((prev) => ({
-        ...prev,
-        position: {
-          time: data.time,
-          latitude: parseFloat(data.latitude),
-          longitude: parseFloat(data.longitude),
-          altitude: parseFloat(data.altitude),
-        },
-      }));
-    });
-    return () => socket.off('server_gps');
-    
-  }, []);
-  
-  useEffect(()=>{
-    socket.on("get_ttl_info",(data) =>{
-      console.log("recive motion power ttl status",data);
-      if (data.motion !== undefined) setMotionStatus(data.motion);
-      if (data.power !== undefined) setPowerStatus(data.power);
+      if (data.imu) {
+        const [roll, pitch, yaw] = data.imu.map(parseFloat);
+        setShipData((prev) => ({
+          ...prev,
+          imu: { roll, pitch, yaw },
+        }));
+      }
 
+      if (data.gps) {
+        setShipData((prev) => ({
+          ...prev,
+          position: {
+            time: data.gps.time,
+            latitude: parseFloat(data.gps.latitude),
+            longitude: parseFloat(data.gps.longitude),
+            altitude: parseFloat(data.gps.altitude),
+          },
+        }));
+      }
 
+      if (data.status) {
+        setMotionStatus(!!data.status.motion);
+        setPowerStatus(!!data.status.power);
+      }
     });
-    return () => socket.off("get_ttl_info");
-  },[]);
 
-  const [videoFrame, setVideoFrame] = useState(null);
-  useEffect(() => {
-    socket.on('video_frame', (data) => {
-      setVideoFrame(`data:image/jpeg;base64,${data}`);
-    });
-    return () => socket.off('video_frame');
+    return () => socket.off('ship_status');
   }, []);
 
   return (
@@ -156,31 +136,16 @@ const App = () => {
             <CardContent>
               <Box display="flex" alignItems="center" gap={2}>
                 <Box display="flex" alignItems="center" gap={1}>
-                  <Box
-                    sx={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: '50%',
-                      bgcolor: motionStatus ? '#00FF00' : '#FF0000'
-                    }}
-                  />
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: motionStatus ? '#00FF00' : '#FF0000' }} />
                   <Typography>Motion</Typography>
                 </Box>
                 <Box display="flex" alignItems="center" gap={1}>
-                  <Box
-                    sx={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: '50%',
-                      bgcolor: powerStatus ? '#00FF00' : '#FF0000'
-                    }}
-                  />
+                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: powerStatus ? '#00FF00' : '#FF0000' }} />
                   <Typography>Power</Typography>
                 </Box>
               </Box>
             </CardContent>
           </Card>
-
 
           <Card sx={{ bgcolor: '#2C3E50', color: '#FFFFFF', flex: 1 }}>
             <CardHeader title="GPS Location" avatar={<Navigation color="#00AEEF" />} />

@@ -42,33 +42,13 @@ POWER_PACKET =None
 LAST_VALID_PACKET = None
 
 
-def sio_connecter(sio, timeout=0.5):
-    result = {"success": False}
-
-    def connect_thread():
-        try:
-            sio.connect(SERVER_URL)
-            result["success"] = True
-        except Exception as e:
-            print(f"❌ SocketIO connect exception: {e}")
-
-    t = threading.Thread(target=connect_thread)
-    t.start()
-    t.join(timeout)
-
-    if t.is_alive():
-        print("❌ SocketIO connect timeout.")
-        return None
-
-    return sio if result["success"] else None
-
 def create_resilient_sio(name="module"):
     # print(f"🔌 [{name}] Connecting to SocketIO server...")
     sio = socketio.Client(
         reconnection=True,
-        reconnection_attempts=0,
+        reconnection_attempts=5,
         reconnection_delay=0.5,
-        reconnection_delay_max=2
+        reconnection_delay_max=3
     )
 
     @sio.event
@@ -79,13 +59,14 @@ def create_resilient_sio(name="module"):
     def disconnect():
         print(f"❌ [{name}] SocketIO Disconnected")
 
-    sio = sio_connecter(sio, timeout=1)
 
-    if sio is None or not sio.connected:
-        print(f"⚠️ [{name}] SocketIO connection failed or not connected")
+    try:
+        sio.connect(SERVER_URL)
+    except Exception as e:
+        print(f"❌ [{name}] SocketIO connect exception: {e}")
         return None
 
-    return sio
+    return sio if sio.connected else None
 
 
 def lidar_callback(scan_results, sio):
@@ -99,7 +80,6 @@ def lidar_callback(scan_results, sio):
 def lidar_process_func():
     lidar.PORT = LIDAR
     lidar.BAUDRATE = 1000000
-    sio = create_resilient_sio("LIDAR")
 
     while True:
         try:
@@ -145,18 +125,6 @@ def imu_process_func(shared_imu):
             if result:
                 imu_data = ['%.3f' % result[0], '%.3f' % result[1], '%.3f' % (result[2] - 167)]
                 shared_imu['rpy'] = imu_data
-                # print(f"📥 IMU Data: {imu_data}")
-                try:
-                    if sio is None or not sio.connected:
-                        # print("🔁 IMU SocketIO lost. Reconnecting...")
-                        sio = create_resilient_sio("IMU")
-                        continue
-                    if sio.connected:
-                        sio.emit("get_imu", imu_data, callback=None)
-                        print(f"📤 Sent IMU data: {imu_data}")
-                except Exception as e:
-                    print(f"❌ IMU emit error: {e}")
-                    time.sleep(1)
 
     except Exception as e:
         print(f"❌ IMU process fatal error: {e}")
@@ -233,16 +201,7 @@ def gps_process_func(shared_gps):
                     shared_gps['longitude'] = last_data["longitude"]
                     shared_gps['altitude'] = last_data["altitude"]
                         
-                    try:
-                        if sio is None or not sio.connected:
-                            print("🔁 GPS SocketIO lost. Reconnecting...")
-                            sio = create_resilient_sio("GPS")
-                            continue
-                        if sio.connected:
-                            sio.emit("get_gps", last_data, callback=None)
-                            # print(f"📤 Sent GPS data: {last_data}")
-                    except Exception as e:
-                        print(f"❌ GPS emit error: {e}")
+                
                     # else:
                     #     print("⚠️ GPGGA 無有效座標")
             except Exception as e:
@@ -298,12 +257,6 @@ def controller_process_func(shared_imu, shared_gps):
             else:
                 connect_to_power(power_ser, LAST_VALID_PACKET)
             time.sleep(0.5)
-
-            if sio is None or not sio.connected:
-                sio = create_resilient_sio("motion_power TTL")
-                continue  # 不要送封包
-            sio.emit("get_ttl_info", {"motion": MOTION_CONNECT, "power": POWER_CONNECT}, callback=None)
-            
         except Exception as e:
             print(f"❌ Controller process error: {e}")
             time.sleep(0.5)
@@ -477,6 +430,31 @@ def send_to_power(power_ser, packet):
 def ship_controller():
     pass
 
+def socket_process_func(shared_imu, shared_gps):
+    while True:
+        try:
+            sio = create_resilient_sio("Socket Process")
+            if sio is None:
+                print("❌ SocketIO connection failed. Retrying...")
+                time.sleep(1)
+                continue
+
+            # 等待連接成功
+            sio.wait()
+            while sio.connected:
+                sio.emit("ship_status", {
+                    "imu": shared_imu.get("rpy", [0,0,0]),
+                    "gps": shared_gps.copy(),  # 避免 race condition
+                    "status": {
+                        "motion": MOTION_CONNECT,
+                        "power": POWER_CONNECT
+                    }
+                })
+                time.sleep(1)
+        except Exception as e:
+            print(f"❌ SocketIO process error: {e}")
+            time.sleep(1)
+
 def push_video_process_func():
     sio = create_resilient_sio("Video")
     sio.emit("get_video_info", {"device": "edge_01", "url": RTSP_URL}, callback=None)
@@ -540,6 +518,7 @@ if __name__ == "__main__":
         share_gps = manager.dict(time="", latitude=0.0, longitude=0.0, altitude=0.0)
         imu_proc = Process(target=imu_process_func, args=(share_imu,))
         gps_proc = Process(target=gps_process_func, args=(share_gps,))
+        socket_proc = Process(target=socket_process_func, args=(share_imu, share_gps,))
         controller_proc = Process(target=controller_process_func, args=(share_imu, share_gps,))
         # lidar_proc = Process(target=lidar_process_func)
         video_proc = Process(target=push_video_process_func)
@@ -550,9 +529,11 @@ if __name__ == "__main__":
         video_proc.start()
         gps_proc.start()
         controller_proc.start()
+        socket_proc.start()
 
         imu_proc.join()
         # lidar_proc.join()
+        socket_proc.join()
         video_proc.join()
         gps_proc.join()
         controller_proc.join()
@@ -560,7 +541,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
             print("🛑 KeyboardInterrupt. Closing connection...")
             # 手動終止 subprocess
-            for proc in [imu_proc, gps_proc, controller_proc, video_proc]:
+            for proc in [imu_proc, gps_proc, controller_proc, video_proc, socket_proc]:
                 if proc.is_alive():
                     print(f"🧹 Terminating process: {proc.name}")
                     proc.terminate()

@@ -16,30 +16,29 @@ device_status = {}
 
 
 
-@socketio.on('get_imu')
-def get_imu(msg):
-    print(f'Received imu message: {msg}')
-    device_status.setdefault('edge_01', {})['imu'] = msg
-    msg ={
-        "roll":msg[0],
-        "pitch":msg[1],
-        "yaw":msg[2],
-    }
-    socketio.emit("server_imu",msg)
-
-@socketio.on("get_gps")
-def get_gps(msg):
-    
-    """gps msg content
-    data = {
-            "time":time_str,
-            "latitude":lat,
-            "longitude":lon,
-            "altitude":alt}       
+@socketio.on("ship_status")
+def handle_ship_status(msg):
     """
-    print(f'Received gps message: {msg}')
-    device_status.setdefault('edge_01', {})['gps'] = msg
-    socketio.emit("server_gps",msg)
+    msg example:
+    {
+        "imu": {"roll": ..., "pitch": ..., "yaw": ...},
+        "gps": {"latitude": ..., "longitude": ..., "altitude": ..., "time": ...},
+        "status": {"motion": true, "power": false}
+    }
+    """
+    print("📦 Received ship_status:", msg)
+    device = "edge_01"
+
+    # 記錄到 device_status
+    device_status.setdefault(device, {})["imu"] = msg.get("imu", {})
+    device_status[device]["gps"] = msg.get("gps", {})
+    device_status[device]["status"] = msg.get("status", {})
+
+    # 伺服器端轉發（目前沒用到）
+    socketio.emit("server_imu", msg.get("imu", {}))
+    socketio.emit("server_gps", msg.get("gps", {}))
+    socketio.emit("ttl_status", msg.get("status", {}))
+
 
 @socketio.on("get_lidar")
 def get_lidar(msg):
