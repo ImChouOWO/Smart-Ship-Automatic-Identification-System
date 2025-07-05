@@ -1,57 +1,108 @@
 # coding:UTF-8
-# Version: V1.5.1
+# Version: V1.6
 import serial
+import math
 
 buf_length = 11
+
 RxBuff = [0]*buf_length
 
 ACCData = [0.0]*8
 GYROData = [0.0]*8
 AngleData = [0.0]*8
-
-start = 0
-data_length = 0
-CheckSum = 0
+MagData = [0.0]*8
 
 acc = [0.0]*3
 gyro = [0.0]*3
 Angle = [0.0]*3
+mag = [0.0]*3
 
-yaw_0 = None  # 初始 yaw 校正角度（相對 heading 參考）
+FrameState = 0
+CheckSum = 0
+start = 0
+data_length = 0
+
+latest_roll = None
+latest_pitch = None
+latest_mag = None
+
+def get_mag(datahex):
+    mxl = datahex[0]
+    mxh = datahex[1]
+    myl = datahex[2]
+    myh = datahex[3]
+    mzl = datahex[4]
+    mzh = datahex[5]
+    k_mag = 1.0
+
+    mag_x = (mxh << 8 | mxl) / 32768.0 * k_mag
+    mag_y = (myh << 8 | myl) / 32768.0 * k_mag
+    mag_z = (mzh << 8 | mzl) / 32768.0 * k_mag
+
+    if mag_x >= k_mag:
+        mag_x -= 2 * k_mag
+    if mag_y >= k_mag:
+        mag_y -= 2 * k_mag
+    if mag_z >= k_mag:
+        mag_z -= 2 * k_mag
+
+    return mag_x, mag_y, mag_z
+
+def compute_heading(roll, pitch, mag):
+    mx, my, mz = mag
+    roll_r = math.radians(roll)
+    pitch_r = math.radians(pitch)
+
+    # 傾角補償
+    Xh = mx * math.cos(pitch_r) + my * math.sin(roll_r) * math.sin(pitch_r) + mz * math.cos(roll_r) * math.sin(pitch_r)
+    Yh = my * math.cos(roll_r) - mz * math.sin(roll_r)
+
+    # 原始 heading
+    hdg = math.degrees(math.atan2(Yh, Xh))
+
+    # 加入校正角（例如北偏到 190°，應減回 190°）
+    heading_offset = 190.0
+    hdg = (hdg - heading_offset + 360) % 360
+
+    return hdg
+
 
 def GetDataDeal(list_buf):
-    global acc, gyro, Angle, yaw_0
+    global acc, gyro, Angle, mag
+    global latest_roll, latest_pitch, latest_mag
 
-    if list_buf[buf_length - 1] != CheckSum:
+    if(list_buf[buf_length - 1] != CheckSum):
         return None
 
-    if list_buf[1] == 0x51:
-        for i in range(6): 
+    if(list_buf[1] == 0x51):
+        for i in range(6):
             ACCData[i] = list_buf[2+i]
         acc = get_acc(ACCData)
 
-    elif list_buf[1] == 0x52:
-        for i in range(6): 
+    elif(list_buf[1] == 0x52):
+        for i in range(6):
             GYROData[i] = list_buf[2+i]
         gyro = get_gyro(GYROData)
 
-    elif list_buf[1] == 0x53:
-        for i in range(6): 
+    elif(list_buf[1] == 0x53):
+        for i in range(6):
             AngleData[i] = list_buf[2+i]
         Angle = get_angle(AngleData)
+        latest_roll, latest_pitch = Angle[0], Angle[1]
 
-        # ➕ 相對 heading 校正邏輯
-        yaw_now = Angle[2]
-        if yaw_0 is None:
-            yaw_0 = yaw_now
-            print(f"📍 設定初始朝向 yaw_0 = {yaw_0:.2f}°")
-            relative_yaw = 0.0
-        else:
-            relative_yaw = ((yaw_now - yaw_0 + 540) % 360) - 180
+    elif(list_buf[1] == 0x54):
+        for i in range(6):
+            MagData[i] = list_buf[2+i]
+        mag = get_mag(MagData)
+        latest_mag = mag
 
-        return (Angle[0], Angle[1], relative_yaw)  # 傳回 roll, pitch, 校正後的 yaw
+    # 如果都有 roll/pitch 和 mag，才計算 heading
+    if latest_roll is not None and latest_pitch is not None and latest_mag is not None:
+        heading = compute_heading(latest_roll, latest_pitch, latest_mag)
+        return latest_roll, latest_pitch, heading
 
     return None
+
 
 def DueData(inputdata):
     global start, CheckSum, data_length
@@ -67,40 +118,79 @@ def DueData(inputdata):
         RxBuff[buf_length - data_length] = inputdata
         data_length -= 1
         if data_length == 0:
-            CheckSum = (CheckSum - inputdata) & 0xFF
+            CheckSum = (CheckSum - inputdata) & 0xff
             start = 0
             return GetDataDeal(RxBuff)
 
 def get_acc(datahex):
-    def decode(u8_l, u8_h):
-        raw = int.from_bytes([u8_l, u8_h], byteorder='little', signed=True)
-        return raw / 32768.0 * 16.0
-    return decode(datahex[0], datahex[1]), decode(datahex[2], datahex[3]), decode(datahex[4], datahex[5])
+    axl = datahex[0]
+    axh = datahex[1]
+    ayl = datahex[2]
+    ayh = datahex[3]
+    azl = datahex[4]
+    azh = datahex[5]
+    k_acc = 16.0
+    acc_x = (axh << 8 | axl) / 32768.0 * k_acc
+    acc_y = (ayh << 8 | ayl) / 32768.0 * k_acc
+    acc_z = (azh << 8 | azl) / 32768.0 * k_acc
+    if acc_x >= k_acc:
+        acc_x -= 2 * k_acc
+    if acc_y >= k_acc:
+        acc_y -= 2 * k_acc
+    if acc_z >= k_acc:
+        acc_z -= 2 * k_acc
+    return acc_x, acc_y, acc_z
 
 def get_gyro(datahex):
-    def decode(u8_l, u8_h):
-        raw = int.from_bytes([u8_l, u8_h], byteorder='little', signed=True)
-        return raw / 32768.0 * 2000.0
-    return decode(datahex[0], datahex[1]), decode(datahex[2], datahex[3]), decode(datahex[4], datahex[5])
+    wxl = datahex[0]
+    wxh = datahex[1]
+    wyl = datahex[2]
+    wyh = datahex[3]
+    wzl = datahex[4]
+    wzh = datahex[5]
+    k_gyro = 2000.0
+    gyro_x = (wxh << 8 | wxl) / 32768.0 * k_gyro
+    gyro_y = (wyh << 8 | wyl) / 32768.0 * k_gyro
+    gyro_z = (wzh << 8 | wzl) / 32768.0 * k_gyro
+    if gyro_x >= k_gyro:
+        gyro_x -= 2 * k_gyro
+    if gyro_y >= k_gyro:
+        gyro_y -= 2 * k_gyro
+    if gyro_z >= k_gyro:
+        gyro_z -= 2 * k_gyro
+    return gyro_x, gyro_y, gyro_z
 
 def get_angle(datahex):
-    def decode(u8_l, u8_h):
-        raw = int.from_bytes([u8_l, u8_h], byteorder='little', signed=True)
-        return raw / 32768.0 * 180.0
-    return decode(datahex[0], datahex[1]), decode(datahex[2], datahex[3]), decode(datahex[4], datahex[5])
+    rxl = datahex[0]
+    rxh = datahex[1]
+    ryl = datahex[2]
+    ryh = datahex[3]
+    rzl = datahex[4]
+    rzh = datahex[5]
+    k_angle = 180.0
+    angle_x = (rxh << 8 | rxl) / 32768.0 * k_angle
+    angle_y = (ryh << 8 | ryl) / 32768.0 * k_angle
+    angle_z = (rzh << 8 | rzl) / 32768.0 * k_angle
+    if angle_x >= k_angle:
+        angle_x -= 2 * k_angle
+    if angle_y >= k_angle:
+        angle_y -= 2 * k_angle
+    if angle_z >= k_angle:
+        angle_z -= 2 * k_angle
+    return angle_x, angle_y, angle_z
 
-# 測試主函數
+
 if __name__ == '__main__':
-    port = '/dev/imu'  # Linux serial port
+    port = '/dev/ttyUSB0'  # Linux
+    # port = 'COM12'        # Windows
     baud = 9600
     ser = serial.Serial(port, baud, timeout=0.5)
-    print("✅ Serial is Opened:", ser.is_open)
-
+    print("Serial is Opened:", ser.is_open)
     while True:
         RXdata = ser.read(1)
         if RXdata:
-            byte_val = int.from_bytes(RXdata, byteorder='big')
-            result = DueData(byte_val)
+            RXdata = int(RXdata.hex(), 16)
+            result = DueData(RXdata)
             if result:
-                roll, pitch, yaw = result
-                print(f"📈 Roll: {roll:.2f}°, Pitch: {pitch:.2f}°, Relative Yaw: {yaw:.2f}°")
+                roll, pitch, heading = result
+                print(f"✅ Roll: {roll:.2f}°, Pitch: {pitch:.2f}°, Heading: {heading:.2f}°")
