@@ -91,27 +91,25 @@ def lidar_process_func():
 def imu_process_func(shared_imu):
     port = IMU
     baud = 9600
-    sio =None
     ser = None
+
     while True:
         try:
             ser = serial.Serial(port, baud, timeout=0.5)
             print("✅ IMU Serial Opened:", ser.is_open)
         except:
             ser = None
-            print("IMU Serial Opened Fail")
-        if ser is not None:
-            if ser.is_open:
-                break
-        time.sleep(1)            
+            print("❌ IMU Serial Opened Fail")
+        if ser is not None and ser.is_open:
+            break
+        time.sleep(1)
 
     try:
-        
         time.sleep(0.5)
 
-        while True:
-            
+        base_rpy = None  # 初始化校正基準為 None
 
+        while True:
             RXdata = ser.read(1)
             if not RXdata:
                 continue
@@ -123,18 +121,32 @@ def imu_process_func(shared_imu):
 
             result = DueData(value)
             if result:
-                
-                roll, pitch, heading = result
+                raw_roll, raw_pitch, raw_yaw = result
+
+                if base_rpy is None:
+                    # 第一次取得資料時當作基準
+                    base_rpy = (raw_roll, raw_pitch, raw_yaw)
+                    print(f"📍 IMU 校正基準已設定為: {base_rpy}")
+
+                # 相對校正：減去基準值
+                roll = raw_roll - base_rpy[0]
+                pitch = raw_pitch - base_rpy[1]
+                yaw = raw_yaw - base_rpy[2]
+
+                # 角度標準化（可選）：讓 yaw 介於 [0, 360) 或 [-180, 180)
+                yaw = (yaw + 360) % 360
+
                 imu_data = [
                     '%.3f' % roll,
                     '%.3f' % pitch,
-                    '%.3f' % heading
+                    '%.3f' % yaw
                 ]
                 shared_imu['rpy'] = imu_data
 
     except Exception as e:
         print(f"❌ IMU process fatal error: {e}")
         time.sleep(0.1)
+
 
 def parse_nmea_gpgga(sentence):
     if sentence.startswith('$GPGGA'):
