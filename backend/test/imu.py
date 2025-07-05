@@ -140,5 +140,5 @@ if __name__ == '__main__':
     while(1):
         RXdata = ser.read(1)#一个一个读
         RXdata = int(RXdata.hex(),16) #转成16进制显示
-        DueData(RXdata)
+        print(DueData(RXdata))
         
