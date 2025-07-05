@@ -134,7 +134,7 @@ def imu_process_func(shared_imu):
                     # 相對校正
                     roll = raw_roll - base_rpy[0]
                     pitch = raw_pitch - base_rpy[1]
-                    yaw = (raw_yaw - base_rpy[2] + 360) % 360
+                    yaw = raw_yaw - base_rpy[2]
 
                     imu_data = [
                         '%.3f' % roll,
