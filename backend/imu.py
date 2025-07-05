@@ -91,7 +91,7 @@ def get_angle(datahex):
 
 # 測試主函數
 if __name__ == '__main__':
-    port = '/dev/ttyUSB0'  # Linux serial port
+    port = '/dev/imu'  # Linux serial port
     baud = 9600
     ser = serial.Serial(port, baud, timeout=0.5)
     print("✅ Serial is Opened:", ser.is_open)
