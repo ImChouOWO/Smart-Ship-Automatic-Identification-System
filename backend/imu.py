@@ -181,7 +181,7 @@ def get_angle(datahex):
 
 
 if __name__ == '__main__':
-    port = '/dev/ttyUSB0'  # Linux
+    port = '/dev/imu'  # Linux
     # port = 'COM12'        # Windows
     baud = 9600
     ser = serial.Serial(port, baud, timeout=0.5)
