@@ -107,7 +107,8 @@ def imu_process_func(shared_imu):
     try:
         time.sleep(0.5)
 
-        base_rpy = None  # 初始化校正基準為 None
+        base_rpy = None  # 校正基準
+        start_time = time.time()  # ⏱️ 開始計時
 
         while True:
             RXdata = ser.read(1)
@@ -123,30 +124,30 @@ def imu_process_func(shared_imu):
             if result:
                 raw_roll, raw_pitch, raw_yaw = result
 
-                if base_rpy is None:
-                    # 第一次取得資料時當作基準
+                # ⏳ 等待 1 秒後再校正
+                if base_rpy is None and (time.time() - start_time >= 1.0):
                     base_rpy = (raw_roll, raw_pitch, raw_yaw)
                     print(f"📍 IMU 校正基準已設定為: {base_rpy}")
+                    continue  # 本次不進行校正運算，直接略過
 
-                # 相對校正：減去基準值
-                roll = raw_roll - base_rpy[0]
-                pitch = raw_pitch - base_rpy[1]
-                yaw = raw_yaw - base_rpy[2]
+                if base_rpy is not None:
+                    # 相對校正
+                    roll = raw_roll - base_rpy[0]
+                    pitch = raw_pitch - base_rpy[1]
+                    yaw = (raw_yaw - base_rpy[2] + 360) % 360
 
-                # 角度標準化（可選）：讓 yaw 介於 [0, 360) 或 [-180, 180)
-                yaw = (yaw + 360) % 360
-
-                imu_data = [
-                    '%.3f' % roll,
-                    '%.3f' % pitch,
-                    '%.3f' % yaw
-                ]
-                print(f"📥 IMU Data: Roll={imu_data[0]}, Pitch={imu_data[1]}, Yaw={imu_data[2]}")
-                shared_imu['rpy'] = imu_data
+                    imu_data = [
+                        '%.3f' % roll,
+                        '%.3f' % pitch,
+                        '%.3f' % yaw
+                    ]
+                    print(f"📥 IMU Data: Roll={imu_data[0]}, Pitch={imu_data[1]}, Yaw={imu_data[2]}")
+                    shared_imu['rpy'] = imu_data
 
     except Exception as e:
         print(f"❌ IMU process fatal error: {e}")
         time.sleep(0.1)
+
 
 
 def parse_nmea_gpgga(sentence):
