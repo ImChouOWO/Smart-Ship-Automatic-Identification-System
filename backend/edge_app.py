@@ -90,7 +90,7 @@ def lidar_process_func():
 
 def imu_process_func(shared_imu):
     port = IMU
-    baud = 9600
+    baud = 921600
     ser = None
 
     while True:
