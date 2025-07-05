@@ -141,7 +141,7 @@ def imu_process_func(shared_imu):
                         '%.3f' % pitch,
                         '%.3f' % yaw
                     ]
-                    #print(f"📥 IMU Data: Roll={imu_data[0]}, Pitch={imu_data[1]}, Yaw={imu_data[2]}")
+                    print(f"📥 IMU Data: Roll={imu_data[0]}, Pitch={imu_data[1]}, Yaw={imu_data[2]}")
                     shared_imu['rpy'] = imu_data
 
     except Exception as e:
