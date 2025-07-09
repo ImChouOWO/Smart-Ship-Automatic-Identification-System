@@ -9,21 +9,23 @@ import multiprocessing
 import serial
 from datetime import datetime
 import threading
+import yaml
 
 
-SERVER_URL = 'http://140.133.74.176:5000'
+
+SERVER_URL = None
 
 #Streaming URL
-RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
+RTSP_URL = None
 
 #TTL Port and Baudrate
-VIDEO_DEVICE = '/dev/video0'
-IMU = '/dev/imu'
-LIDAR = ''
-GPS = "/dev/gps"
-POWER_SER = "/dev/power_ttl"
-MOTION_SER = "/dev/motion_ttl"
-BAUDRATE = 9600
+VIDEO_DEVICE = None
+IMU = None
+LIDAR = None
+GPS = None
+POWER_SER = None
+MOTION_SER = None
+BAUDRATE = None
 
 
 
@@ -40,6 +42,24 @@ NOW_DIRECTION = None
 #Sending it to power system when it not none  
 POWER_PACKET =None
 LAST_VALID_PACKET = None
+
+def load_config(path="config.yaml"):
+    global SERVER_URL, RTSP_URL
+    global VIDEO_DEVICE, IMU, LIDAR, GPS, POWER_SER, MOTION_SER, BAUDRATE
+
+    with open(path, "r") as f:
+        cfg = yaml.safe_load(f)
+
+    SERVER_URL = cfg['SERVER_URL']['ip']
+    RTSP_URL = cfg['RTSP_URL']['ip']
+
+    VIDEO_DEVICE = cfg['sensor']['video']
+    IMU = cfg['sensor']['imu']
+    LIDAR = cfg['sensor']['lidar']
+    GPS = cfg['sensor']['gps']
+    POWER_SER = cfg['sensor']['power_ser']
+    MOTION_SER = cfg['sensor']['motion_ser']
+    BAUDRATE = cfg['sensor']['baudrate']
 
 
 def sio_connecter(sio, timeout=0.5):
@@ -532,6 +552,7 @@ def push_video_process_func():
 
 if __name__ == "__main__":
     try:
+        load_config(path="config.yaml")
         multiprocessing.set_start_method("spawn")
         manager = Manager()
         share_imu = manager.dict(rpy=[0.0,0.0,0.0])

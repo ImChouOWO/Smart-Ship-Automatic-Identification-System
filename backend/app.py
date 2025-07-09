@@ -8,7 +8,6 @@ import cv2
 import base64
 import threading
 
-RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')  # 允許跨來源連接

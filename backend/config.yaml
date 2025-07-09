@@ -1,0 +1,15 @@
+SERVER_URL:
+  ip: 'http://140.133.74.176:5000'
+
+
+RTSP_URL:
+  ip: 'rtsp://140.133.74.176:8554/edge_cam'
+
+sensor:
+  video: '/dev/video0'
+  imu: '/dev/imu'
+  lidar: ''
+  gps: "/dev/gps"
+  power_ser: "/dev/power_ttl"
+  motion_ser: "/dev/motion_ttl"
+  baudrate: 9600
