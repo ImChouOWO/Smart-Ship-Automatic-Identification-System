@@ -10,35 +10,33 @@ import threading
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')  # 允許跨來源連接
+socketio = SocketIO(app, cors_allowed_origins='*', async_mode="eventlet")  # 允許跨來源連接
 device_status = {}
 
 
 
-@socketio.on('get_imu')
-def get_imu(msg):
-    print(f'Received imu message: {msg}')
-    device_status.setdefault('edge_01', {})['imu'] = msg
-    msg ={
-        "roll":msg[0],
-        "pitch":msg[1],
-        "yaw":msg[2],
-    }
-    socketio.emit("server_imu",msg)
-
-@socketio.on("get_gps")
-def get_gps(msg):
-    
-    """gps msg content
-    data = {
-            "time":time_str,
-            "latitude":lat,
-            "longitude":lon,
-            "altitude":alt}       
+@socketio.on("ship_status")
+def handle_ship_status(msg):
     """
-    print(f'Received gps message: {msg}')
-    device_status.setdefault('edge_01', {})['gps'] = msg
-    socketio.emit("server_gps",msg)
+    msg example:
+    {
+        "imu": {"roll": ..., "pitch": ..., "yaw": ...},
+        "gps": {"latitude": ..., "longitude": ..., "altitude": ..., "time": ...},
+        "status": {"motion": true, "power": false}
+    }
+    """
+    print("📦 Received ship_status:", msg)
+    device = "edge_01"
+
+    # 記錄到 device_status
+    device_status.setdefault(device, {})["imu"] = msg.get("imu", {})
+    device_status[device]["gps"] = msg.get("gps", {})
+    device_status[device]["status"] = msg.get("status", {})
+
+    # ✅ 原封不動轉發給前端
+    socketio.emit("ship_status", msg)
+
+
 
 @socketio.on("get_lidar")
 def get_lidar(msg):
@@ -113,5 +111,5 @@ def start_rtsp_server():
 
 if __name__ == '__main__':
     start_rtsp_server()
-    socketio.run(app, debug=False, use_reloader=False, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=False, use_reloader=False, host='0.0.0.0', port=5000)
 

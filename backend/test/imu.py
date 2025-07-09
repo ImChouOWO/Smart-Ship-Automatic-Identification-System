@@ -132,7 +132,7 @@ def get_angle(datahex):
     return angle_x, angle_y, angle_z
 
 if __name__ == '__main__':
-    port = '/dev/ttyUSB0' # USB serial port linux
+    port = '/dev/imu' # USB serial port linux
     #port = 'COM12' # USB serial port  windowns
     baud = 9600   # Same baud rate as the INERTIAL navigation module
     ser = serial.Serial(port, baud, timeout=0.5)
