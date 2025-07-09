@@ -30,6 +30,15 @@ npm install @mui/material @emotion/react @emotion/styled
 ```bash
 npm  install react@rc react-dom@rc leaflet
 ```
+
+```bash
+pip install -r requirements.txt
+```
+```bash
+cd .\front\my-ais-system\
+
+npm install
+```
 ---
 ## IP與感測器設定檔位置
 ```
