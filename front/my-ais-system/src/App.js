@@ -32,6 +32,7 @@ const MapUpdater = ({ position }) => {
 
 const App = () => {
   const socket = io(CONFIG.SOCKET_IO_URL);
+
   const [motionStatus, setMotionStatus] = useState(false);
   const [powerStatus, setPowerStatus] = useState(false);
   const [shipData, setShipData] = useState({
