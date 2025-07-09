@@ -8,7 +8,6 @@ from multiprocessing import Process, Manager
 import multiprocessing
 import serial
 from datetime import datetime
-import threading
 import yaml
 
 

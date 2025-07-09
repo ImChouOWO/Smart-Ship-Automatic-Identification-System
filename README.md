@@ -31,6 +31,17 @@ npm install @mui/material @emotion/react @emotion/styled
 npm  install react@rc react-dom@rc leaflet
 ```
 ---
+## IP與感測器設定檔位置
+```
+├── backend
+│     └── config.yaml
+└── front
+      └── my-ais-system
+          └── src
+               └── config.js
+```
+>透過 `config.yaml`、`config.js` 統一管理IP位置與感測器設定
+---
 ## 功能 (Features)
 1. **實時攝影機畫面 (Real-time Camera Feed)**
    - 顯示船舶的即時攝影畫面
@@ -52,6 +63,8 @@ npm  install react@rc react-dom@rc leaflet
 
 6. **串流功能（Streaming）**
    - 使用FFMEPG與MediaMTX
+   - FFMEPG會以 `RTSP_URL` 在指定IP下執行推流
+   - MediaMTX會根據 `RTSP_URL` 接收推流訊號
    - 邊緣端以RTSP實現推流
    - 伺服器端以WebRTC實現串流的轉發
 7. **子系統通訊（Sub system connection）**

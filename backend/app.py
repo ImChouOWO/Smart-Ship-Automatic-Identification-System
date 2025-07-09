@@ -4,9 +4,7 @@ import time
 import os
 from flask import Flask
 from flask_socketio import SocketIO
-import cv2
-import base64
-import threading
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
