@@ -12,19 +12,19 @@ import yaml
 
 
 
-SERVER_URL = None
+SERVER_URL = 'http://140.133.74.176:5000'
 
 #Streaming URL
-RTSP_URL = None
+RTSP_URL = 'rtsp://140.133.74.176:8554/edge_cam'
 
 #TTL Port and Baudrate
-VIDEO_DEVICE = None
-IMU = None
+VIDEO_DEVICE = '/dev/video0'
+IMU = '/dev/imu'
 LIDAR = None
-GPS = None
-POWER_SER = None
-MOTION_SER = None
-BAUDRATE = None
+GPS = "/dev/gps"
+POWER_SER = "/dev/power_ttl"
+MOTION_SER = "/dev/motion_ttl"
+BAUDRATE = 9600
 
 
 
