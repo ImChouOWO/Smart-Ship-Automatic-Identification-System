@@ -45,8 +45,11 @@ LAST_VALID_PACKET = None
 def load_config(path="config.yaml"):
     global SERVER_URL, RTSP_URL
     global VIDEO_DEVICE, IMU, LIDAR, GPS, POWER_SER, MOTION_SER, BAUDRATE
+    now_path = os.path.abspath(__file__) 
+    dir_path = os.path.dirname(now_path) 
+    yaml_path = os.path.join(dir_path, path)
 
-    with open(path, "r") as f:
+    with open(yaml_path, "r") as f:
         cfg = yaml.safe_load(f)
 
     SERVER_URL = cfg['SERVER_URL']['ip']
@@ -59,6 +62,7 @@ def load_config(path="config.yaml"):
     POWER_SER = cfg['sensor']['power_ser']
     MOTION_SER = cfg['sensor']['motion_ser']
     BAUDRATE = cfg['sensor']['baudrate']
+    time.sleep(1)
 
 
 def create_resilient_sio(name="module"):
@@ -550,6 +554,7 @@ def push_video_process_func():
 
 if __name__ == "__main__":
     try:
+        
         load_config(path="config.yaml")
         multiprocessing.set_start_method("spawn")
         manager = Manager()
